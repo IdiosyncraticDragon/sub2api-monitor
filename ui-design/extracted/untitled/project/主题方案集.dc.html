@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#E7E0D4;font-family:"Nunito","Noto Sans SC",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.stage{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:30px 20px 60px}
+.title{font:900 22px/1.2 "Nunito","Noto Sans SC",sans-serif;color:#3A322B;margin:0 0 4px;text-align:center}
+.subtitle{font:500 12.5px/1.55 "Nunito","Noto Sans SC",sans-serif;color:#8C7E6F;margin:0 0 22px;text-align:center;max-width:560px}
+</style>
+</helmet>
+
+<div class="stage">
+  <h1 class="title">Sub2API Monitor · 主题方案集</h1>
+  <p class="subtitle">三套暖色主题任意切换，明暗自适应，折叠态交互可选。下方控制台即真实「首次配置」里会出现的外观设置，选择实时保存到本机。</p>
+
+  <!-- 控制台 -->
+  <div style="background:#FBF7F1;border:1px solid #EFE6D9;border-radius:18px;box-shadow:0 8px 22px -12px rgba(58,50,43,.3);padding:16px 18px;width:520px;max-width:100%;display:flex;flex-direction:column;gap:15px;margin-bottom:26px">
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <span style="font:800 11px 'Nunito',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#A89A8A">主题</span>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <sc-for list="{{ themeChips }}" as="c" hint-placeholder-count="3">
+          <div onClick="{{ c.pick }}" style="cursor:pointer;border-radius:13px;padding:9px 11px;display:flex;align-items:center;gap:9px;border:2px solid {{ c.borderColor }};background:{{ c.chipBg }};transition:all .15s">
+            <span style="display:flex;gap:3px">
+              <span style="width:13px;height:13px;border-radius:4px;background:{{ c.s1 }}"></span>
+              <span style="width:13px;height:13px;border-radius:4px;background:{{ c.s2 }}"></span>
+              <span style="width:13px;height:13px;border-radius:4px;background:{{ c.s3 }}"></span>
+            </span>
+            <span style="font:800 12.5px 'Nunito','Noto Sans SC',sans-serif;color:#3A322B">{{ c.label }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:flex;gap:24px;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <span style="font:800 11px 'Nunito',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#A89A8A">外观</span>
+        <div style="display:flex;background:#F0E8DC;border-radius:11px;padding:3px;gap:3px">
+          <span onClick="{{ setLight }}" style="cursor:pointer;font:800 12px 'Nunito',sans-serif;padding:6px 14px;border-radius:8px;color:{{ lightTabColor }};background:{{ lightTabBg }}">浅色</span>
+          <span onClick="{{ setDark }}" style="cursor:pointer;font:800 12px 'Nunito',sans-serif;padding:6px 14px;border-radius:8px;color:{{ darkTabColor }};background:{{ darkTabBg }}">深色</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <span style="font:800 11px 'Nunito',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#A89A8A">折叠态样式</span>
+        <div style="display:flex;background:#F0E8DC;border-radius:11px;padding:3px;gap:3px">
+          <sc-for list="{{ collapseTabs }}" as="t" hint-placeholder-count="3">
+            <span onClick="{{ t.pick }}" style="cursor:pointer;font:800 12px 'Nunito',sans-serif;padding:6px 13px;border-radius:8px;color:{{ t.color }};background:{{ t.bg }}">{{ t.label }}</span>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:9px">
+        <span style="font:800 11px 'Nunito',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#A89A8A">窗口形态</span>
+        <div style="display:flex;background:#F0E8DC;border-radius:11px;padding:3px;gap:3px">
+          <span onClick="{{ setExpanded }}" style="cursor:pointer;font:800 12px 'Nunito',sans-serif;padding:6px 13px;border-radius:8px;color:{{ expTabColor }};background:{{ expTabBg }}">展开</span>
+          <span onClick="{{ setCollapsed }}" style="cursor:pointer;font:800 12px 'Nunito',sans-serif;padding:6px 13px;border-radius:8px;color:{{ colTabColor }};background:{{ colTabBg }}">折叠</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 预览舞台 -->
+  <div style="display:flex;flex-direction:column;align-items:center;gap:18px;width:100%">
+    <sc-if value="{{ showExpanded }}" hint-placeholder-val="{{ true }}">
+      <div style="width:320px;border-radius:20px;overflow:hidden;background:{{ t.bg }};border:1px solid {{ t.border }};box-shadow:0 16px 36px -12px {{ t.shadow }};color:{{ t.text }}">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px 10px">
+          <div style="display:flex;align-items:center;gap:9px">
+            <span style="width:26px;height:26px;border-radius:9px;background:{{ t.logoBg }};display:flex;align-items:center;justify-content:center;overflow:hidden"><img src="assets/sheep-clay.svg" alt="" style="width:20px;height:20px"></span>
+            <span style="font-weight:800;font-size:14px">Sub2API <span style="font-weight:600;font-size:11px;color:{{ t.muted }}">Monitor</span></span>
+          </div>
+          <div style="display:flex;gap:4px">
+            <span style="width:27px;height:27px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;color:{{ t.muted }};background:{{ t.chipBg }}">⟳</span>
+            <span style="width:27px;height:27px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;color:{{ t.muted }}">⊟</span>
+            <span style="width:27px;height:27px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;color:{{ t.muted }}">✕</span>
+          </div>
+        </div>
+        <div style="margin:0 12px 12px;padding:11px 13px;background:{{ t.summaryBg }};border-radius:14px;display:flex;justify-content:space-between;align-items:center">
+          <div style="display:flex;flex-direction:column"><span style="font-size:18px;font-weight:800;line-height:1">1.2k</span><span style="font-size:10.5px;color:{{ t.muted }};margin-top:2px">今日 Token</span></div>
+          <div style="width:1px;height:26px;background:{{ t.divider }}"></div>
+          <div style="display:flex;flex-direction:column"><span style="font-size:18px;font-weight:800;line-height:1">340</span><span style="font-size:10.5px;color:{{ t.muted }};margin-top:2px">请求</span></div>
+          <div style="width:1px;height:26px;background:{{ t.divider }}"></div>
+          <div style="display:flex;flex-direction:column"><span style="font-size:18px;font-weight:800;line-height:1;color:{{ t.low }}">6<span style="font-size:12px;color:{{ t.muted }}">/8</span></span><span style="font-size:10.5px;color:{{ t.muted }};margin-top:2px">正常账户</span></div>
+        </div>
+        <div style="padding:0 12px 13px;display:flex;flex-direction:column;gap:11px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:0 2px">
+            <span style="font-size:12px;font-weight:800;color:{{ t.subhead }}">默认分组</span>
+            <span style="font-size:10.5px;font-weight:700;color:{{ t.muted }};background:{{ t.chipBg }};border-radius:20px;padding:1px 8px">3</span>
+          </div>
+          <sc-for list="{{ cards }}" as="a" hint-placeholder-count="3">
+            <div style="background:{{ t.card }};border:1px solid {{ t.cardBorder }};border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;gap:9px">
+                <span style="width:28px;height:28px;border-radius:9px;background:{{ a.iconBg }};display:flex;align-items:center;justify-content:center;flex:none;color:{{ a.iconColor }};font-size:14px;font-weight:800">{{ a.glyph }}</span>
+                <span style="font-weight:800;font-size:13.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ a.name }}</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:{{ a.level }}"><span style="width:7px;height:7px;border-radius:50%;background:{{ a.level }}"></span>正常</span>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px"><span style="font-size:11px;color:{{ t.muted }};font-weight:600">会话 · 5h 窗口</span><span style="font-size:12.5px;font-weight:800;color:{{ a.level }}">{{ a.pct }}%</span></div>
+                <div style="height:8px;border-radius:20px;background:{{ t.track }};overflow:hidden"><div style="height:100%;border-radius:20px;background:{{ a.level }};width:{{ a.pct }}%"></div></div>
+              </div>
+              <span style="font-size:11px;color:{{ t.muted }};font-weight:600">{{ a.last }}使用</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ showCollapsed }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:9px">
+
+        <sc-if value="{{ isRings }}" hint-placeholder-val="{{ true }}">
+          <div style="width:300px;background:{{ t.bg }};border:1px solid {{ t.border }};border-radius:18px;box-shadow:0 12px 28px -12px {{ t.shadow }};padding:9px 11px;display:flex;align-items:center;gap:8px;color:{{ t.text }}">
+            <span style="width:18px;height:26px;border-radius:7px;background:{{ t.chipBg }};display:flex;align-items:center;justify-content:center;color:{{ t.muted }};font-size:11px;cursor:grab;flex:none">⋮⋮</span>
+            <div style="display:flex;gap:7px;flex:1">
+              <sc-for list="{{ rings }}" as="r" hint-placeholder-count="4">
+                <div onMouseEnter="{{ r.onEnter }}" onMouseLeave="{{ r.onLeave }}" style="position:relative;width:30px;height:30px;cursor:pointer">
+                  <svg width="30" height="30" viewBox="0 0 30 30">
+                    <circle cx="15" cy="15" r="13" fill="none" stroke="{{ t.track }}" stroke-width="3.5"></circle>
+                    <circle cx="15" cy="15" r="13" fill="none" stroke="{{ r.level }}" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="{{ r.dash }} {{ r.circ }}" transform="rotate(-90 15 15)"></circle>
+                  </svg>
+                  <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:{{ r.level }}">{{ r.pct }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <span style="width:26px;height:26px;border-radius:8px;background:{{ t.logoBg }};display:flex;align-items:center;justify-content:center;color:{{ t.accent }};font-size:13px;cursor:pointer;flex:none">⤢</span>
+          </div>
+          <div style="font-size:11px;font-weight:700;color:{{ t.muted }};text-align:center;background:{{ t.chipBg }};border-radius:20px;padding:4px 14px">{{ ringTipText }}</div>
+        </sc-if>
+
+        <sc-if value="{{ isSegments }}" hint-placeholder-val="{{ true }}">
+          <div style="width:300px;background:{{ t.bg }};border:1px solid {{ t.border }};border-radius:18px;box-shadow:0 12px 28px -12px {{ t.shadow }};padding:10px 11px;display:flex;align-items:center;gap:9px;color:{{ t.text }}">
+            <span style="width:16px;height:24px;display:flex;align-items:center;justify-content:center;color:{{ t.muted }};font-size:11px;cursor:grab;flex:none">⋮⋮</span>
+            <div style="flex:1;display:flex;gap:3px;height:12px;border-radius:20px;overflow:hidden;background:{{ t.track }}">
+              <sc-for list="{{ segs }}" as="s" hint-placeholder-count="4">
+                <div onMouseEnter="{{ s.onEnter }}" onMouseLeave="{{ s.onLeave }}" style="flex:1;background:{{ s.level }};cursor:pointer;border-radius:20px"></div>
+              </sc-for>
+            </div>
+            <span style="width:26px;height:26px;border-radius:8px;background:{{ t.logoBg }};display:flex;align-items:center;justify-content:center;color:{{ t.accent }};font-size:13px;cursor:pointer;flex:none">⤢</span>
+          </div>
+          <div style="font-size:11px;font-weight:700;color:{{ t.muted }};text-align:center;background:{{ t.chipBg }};border-radius:20px;padding:4px 14px">{{ segTipText }}</div>
+        </sc-if>
+
+        <sc-if value="{{ isSpotlight }}" hint-placeholder-val="{{ true }}">
+          <div style="width:300px;background:{{ t.bg }};border:1px solid {{ t.border }};border-radius:18px;box-shadow:0 12px 28px -12px {{ t.shadow }};padding:10px 11px;display:flex;align-items:center;gap:10px;color:{{ t.text }}">
+            <span style="width:34px;height:34px;border-radius:11px;background:{{ spot.iconBg }};display:flex;align-items:center;justify-content:center;color:{{ spot.iconColor }};font-size:15px;font-weight:800;flex:none">{{ spot.glyph }}</span>
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px"><span style="font-size:12px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ spot.name }}</span><span style="font-size:12px;font-weight:800;color:{{ spot.level }}">{{ spot.pct }}%</span></div>
+              <div style="height:7px;border-radius:20px;background:{{ t.track }};overflow:hidden"><div style="height:100%;border-radius:20px;background:{{ spot.level }};width:{{ spot.pct }}%"></div></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;flex:none">
+              <sc-for list="{{ dots }}" as="d" hint-placeholder-count="4">
+                <span onClick="{{ d.pick }}" style="width:9px;height:9px;border-radius:50%;cursor:pointer;background:{{ d.level }};outline:{{ d.outline }}"></span>
+              </sc-for>
+            </div>
+          </div>
+          <div style="font-size:11px;font-weight:700;color:{{ t.muted }};text-align:center;background:{{ t.chipBg }};border-radius:20px;padding:4px 14px">最近 {{ spot.last }}使用 · 点圆点切换</div>
+        </sc-if>
+
+      </div>
+    </sc-if>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:600,&quot;height&quot;:900},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;clay&quot;,&quot;latte&quot;,&quot;sandSage&quot;],&quot;default&quot;:&quot;clay&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;外观&quot;},&quot;dark&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;外观&quot;},&quot;collapseStyle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;rings&quot;,&quot;segments&quot;,&quot;spotlight&quot;],&quot;default&quot;:&quot;rings&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;折叠态&quot;},&quot;form&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;expanded&quot;,&quot;collapsed&quot;],&quot;default&quot;:&quot;expanded&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;窗口形态&quot;}}">
+class Component extends DCLogic {
+  state = {
+    theme: localStorage.getItem('s2a-theme') || 'clay',
+    dark: localStorage.getItem('s2a-dark') === '1',
+    collapseStyle: localStorage.getItem('s2a-collapse') || 'rings',
+    form: localStorage.getItem('s2a-form') || 'expanded',
+    ringHover: null, segHover: null, spotIdx: 1,
+  }
+
+  set(patch) {
+    this.setState(patch)
+    Object.entries(patch).forEach(([k, v]) => {
+      if (k === 'theme') localStorage.setItem('s2a-theme', v)
+      if (k === 'dark') localStorage.setItem('s2a-dark', v ? '1' : '0')
+      if (k === 'collapseStyle') localStorage.setItem('s2a-collapse', v)
+      if (k === 'form') localStorage.setItem('s2a-form', v)
+    })
+  }
+
+  themes() {
+    return {
+      clay: {
+        label: '陶土 Clay', swatch: ['#C26B4A', '#7C9A5E', '#D9A441'],
+        light: {
+          bg: '#FBF7F1', card: '#ffffff', cardBorder: '#EFE6D9', border: '#EFE6D9',
+          text: '#3A322B', muted: '#A89A8A', subhead: '#6E6155', shadow: 'rgba(58,50,43,.32)',
+          chipBg: '#F2E9DD', summaryBg: '#F6EFE5', divider: 'rgba(58,50,43,.1)', track: '#F0E8DC',
+          logoBg: '#F6E2D6', accent: '#C26B4A', low: '#7C9A5E', mid: '#D9A441', high: '#C8553D',
+          claudeBg: '#FBEAE0', claudeIc: '#C26B4A', codexBg: '#E3F1EC', codexIc: '#2F9E78', gemBg: '#E6EEF8', gemIc: '#4F86C6',
+        },
+        dark: {
+          bg: '#221D19', card: 'rgba(255,255,255,.035)', cardBorder: 'rgba(255,255,255,.06)', border: 'rgba(255,255,255,.06)',
+          text: '#F0E9E0', muted: '#897C6E', subhead: '#C9BBAA', shadow: 'rgba(0,0,0,.55)',
+          chipBg: 'rgba(255,255,255,.06)', summaryBg: 'rgba(255,255,255,.04)', divider: 'rgba(255,255,255,.08)', track: 'rgba(255,255,255,.08)',
+          logoBg: 'rgba(224,147,107,.18)', accent: '#E0936B', low: '#9CB47A', mid: '#E3B65A', high: '#E08363',
+          claudeBg: 'rgba(224,147,107,.16)', claudeIc: '#E0936B', codexBg: 'rgba(47,158,120,.18)', codexIc: '#62C49C', gemBg: 'rgba(79,134,198,.18)', gemIc: '#7FB0E8',
+        },
+      },
+      latte: {
+        label: '拿铁 Latte', swatch: ['#B5713F', '#7C8A4E', '#C98A3C'],
+        light: {
+          bg: '#F3EBDF', card: '#FBF6ED', cardBorder: '#EADDC9', border: '#E7DAC6',
+          text: '#4A3A2C', muted: '#A98F70', subhead: '#6F5A45', shadow: 'rgba(74,55,40,.32)',
+          chipBg: '#EADDC9', summaryBg: '#EADDC9', divider: 'rgba(74,55,40,.12)', track: '#EADDC9',
+          logoBg: '#E2C9A8', accent: '#B5713F', low: '#7C8A4E', mid: '#C98A3C', high: '#BD5A36',
+          claudeBg: '#EFD9C0', claudeIc: '#B5713F', codexBg: '#D8E3CB', codexIc: '#4F7A3E', gemBg: '#D9E0EC', gemIc: '#5A77A8',
+        },
+        dark: {
+          bg: '#241B12', card: 'rgba(255,255,255,.04)', cardBorder: 'rgba(255,255,255,.07)', border: 'rgba(255,255,255,.07)',
+          text: '#F1E6D6', muted: '#9C8870', subhead: '#CDB79E', shadow: 'rgba(0,0,0,.55)',
+          chipBg: 'rgba(255,255,255,.06)', summaryBg: 'rgba(255,255,255,.045)', divider: 'rgba(255,255,255,.09)', track: 'rgba(255,255,255,.09)',
+          logoBg: 'rgba(210,150,90,.2)', accent: '#D89A5E', low: '#A6B575', mid: '#DCA94F', high: '#D87B52',
+          claudeBg: 'rgba(210,150,90,.18)', claudeIc: '#D89A5E', codexBg: 'rgba(95,140,70,.2)', codexIc: '#83BA68', gemBg: 'rgba(90,119,168,.22)', gemIc: '#86A6D6',
+        },
+      },
+      sandSage: {
+        label: '沙砾 Sage', swatch: ['#5C7A4E', '#C26B4A', '#D9A441'],
+        light: {
+          bg: '#F1EEE6', card: '#FBFAF5', cardBorder: '#E5E2D8', border: '#E2DDD0',
+          text: '#3C3E34', muted: '#9AA08C', subhead: '#5E6152', shadow: 'rgba(60,62,52,.3)',
+          chipBg: '#E5E2D8', summaryBg: '#E7E4DA', divider: 'rgba(60,62,52,.12)', track: '#E5E2D8',
+          logoBg: '#DCE5D2', accent: '#5C7A4E', low: '#5C7A4E', mid: '#D9A441', high: '#C26B4A',
+          claudeBg: '#DCE5D2', claudeIc: '#5C7A4E', codexBg: '#DDE6D4', codexIc: '#48714A', gemBg: '#E0E5EC', gemIc: '#5A77A8',
+        },
+        dark: {
+          bg: '#1E211A', card: 'rgba(255,255,255,.035)', cardBorder: 'rgba(255,255,255,.06)', border: 'rgba(255,255,255,.06)',
+          text: '#EBEEE0', muted: '#8B917E', subhead: '#C2C7B2', shadow: 'rgba(0,0,0,.55)',
+          chipBg: 'rgba(255,255,255,.06)', summaryBg: 'rgba(255,255,255,.04)', divider: 'rgba(255,255,255,.08)', track: 'rgba(255,255,255,.08)',
+          logoBg: 'rgba(124,154,94,.2)', accent: '#8DB06E', low: '#8DB06E', mid: '#E3B65A', high: '#E0936B',
+          claudeBg: 'rgba(124,154,94,.2)', claudeIc: '#8DB06E', codexBg: 'rgba(95,140,70,.2)', codexIc: '#83BA68', gemBg: 'rgba(90,119,168,.22)', gemIc: '#86A6D6',
+        },
+      },
+    }
+  }
+
+  tokens() {
+    const th = this.themes()[this.state.theme] || this.themes().clay
+    return this.state.dark ? th.dark : th.light
+  }
+
+  accts(t) {
+    const lvl = (p) => p >= 80 ? t.high : p >= 65 ? t.mid : t.low
+    return [
+      { name: '主力 Claude', pct: 62, last: '3 分钟前', glyph: '✳', iconBg: t.claudeBg, iconColor: t.claudeIc },
+      { name: '备用 Claude', pct: 88, last: '12 分钟前', glyph: '✳', iconBg: t.claudeBg, iconColor: t.claudeIc },
+      { name: 'Codex 工作号', pct: 34, last: '1 小时前', glyph: '‹›', iconBg: t.codexBg, iconColor: t.codexIc },
+      { name: 'Gemini 试验', pct: 71, last: '40 分钟前', glyph: '✦', iconBg: t.gemBg, iconColor: t.gemIc },
+    ].map(a => ({ ...a, level: lvl(a.pct) }))
+  }
+
+  renderVals() {
+    const t = this.tokens()
+    const themesDef = this.themes()
+    const all = this.accts(t)
+    const cards = all.slice(0, 3)
+    const C = 2 * Math.PI * 13
+
+    const themeChips = Object.entries(themesDef).map(([key, def]) => ({
+      key, label: def.label, s1: def.swatch[0], s2: def.swatch[1], s3: def.swatch[2],
+      chipBg: this.state.theme === key ? '#FBF7F1' : '#F4EEE4',
+      borderColor: this.state.theme === key ? t.accent : 'transparent',
+      pick: () => this.set({ theme: key }),
+    }))
+
+    const tabBg = (on) => on ? '#FBF7F1' : 'transparent'
+    const tabFg = (on) => on ? '#3A322B' : '#A89A8A'
+
+    const collapseTabs = [['rings', '进度环'], ['segments', '分段条'], ['spotlight', '聚光泡']].map(([key, label]) => ({
+      key, label, bg: tabBg(this.state.collapseStyle === key), color: tabFg(this.state.collapseStyle === key),
+      pick: () => this.set({ collapseStyle: key }),
+    }))
+
+    const rings = all.map((a, i) => ({
+      ...a, i, circ: C, dash: (a.pct / 100) * C,
+      onEnter: () => this.setState({ ringHover: i }), onLeave: () => this.setState({ ringHover: null }),
+    }))
+    const segs = all.map((a, i) => ({
+      ...a, i,
+      onEnter: () => this.setState({ segHover: i }), onLeave: () => this.setState({ segHover: null }),
+    }))
+    const dots = all.map((a, i) => ({
+      ...a, i, outline: i === this.state.spotIdx ? '2px solid ' + t.text : 'none',
+      pick: () => this.setState({ spotIdx: i }),
+    }))
+    const spot = all[this.state.spotIdx] || all[0]
+    const rt = this.state.ringHover != null ? all[this.state.ringHover] : null
+    const st = this.state.segHover != null ? all[this.state.segHover] : null
+
+    return {
+      t, cards, rings, segs, dots, spot, themeChips, collapseTabs,
+      showExpanded: this.state.form === 'expanded',
+      showCollapsed: this.state.form === 'collapsed',
+      isRings: this.state.collapseStyle === 'rings',
+      isSegments: this.state.collapseStyle === 'segments',
+      isSpotlight: this.state.collapseStyle === 'spotlight',
+      ringTipText: rt ? rt.name + ' · ' + rt.pct + '%' : '悬停查看账户',
+      segTipText: st ? st.name + ' · 会话 ' + st.pct + '%' : '4 个账户 · 点击展开主窗',
+      lightTabBg: tabBg(!this.state.dark), lightTabColor: tabFg(!this.state.dark),
+      darkTabBg: tabBg(this.state.dark), darkTabColor: tabFg(this.state.dark),
+      expTabBg: tabBg(this.state.form === 'expanded'), expTabColor: tabFg(this.state.form === 'expanded'),
+      colTabBg: tabBg(this.state.form === 'collapsed'), colTabColor: tabFg(this.state.form === 'collapsed'),
+      setLight: () => this.set({ dark: false }),
+      setDark: () => this.set({ dark: true }),
+      setExpanded: () => this.set({ form: 'expanded' }),
+      setCollapsed: () => this.set({ form: 'collapsed' }),
+    }
+  }
+}
+</script>
+</body>
+</html>

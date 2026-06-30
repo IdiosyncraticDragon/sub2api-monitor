@@ -1,0 +1,23 @@
+node_modules/
+out/
+dist/
+release/
+coverage/
+*.log
+.DS_Store
+.vite/
+.idea/
+.vscode/
+
+# Xcode / SwiftPM build outputs
+.build/
+.swiftpm/
+DerivedData/
+*.xcresult/
+*.xcuserstate
+xcuserdata/
+
+# 个人/本地配置，不入库
+.claude/settings.local.json
+.env
+.env.local

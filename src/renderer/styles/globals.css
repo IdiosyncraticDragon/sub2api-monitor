@@ -1,0 +1,195 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * 暖色主题令牌（CSS 变量）。
+ * 三套主题 × 明暗两态，由 <html data-theme="…" data-mode="…"> 切换（见 hooks/useTheme）。
+ * 组件统一引用 var(--s2a-*)；新增主题=在此追加一组选择器即可，无需改组件。
+ * 配色取自 ui-design 设计稿（陶土 / 拿铁 / 沙砾 Sage）。
+ */
+
+/* ---- 陶土 Clay ---- */
+html[data-theme='clay'][data-mode='light'] {
+  --s2a-bg: #fbf7f1;
+  --s2a-card: #ffffff;
+  --s2a-card-border: #efe6d9;
+  --s2a-border: #efe6d9;
+  --s2a-text: #3a322b;
+  --s2a-muted: #a89a8a;
+  --s2a-subhead: #6e6155;
+  --s2a-shadow: rgba(58, 50, 43, 0.32);
+  --s2a-chip-bg: #f2e9dd;
+  --s2a-summary-bg: #f6efe5;
+  --s2a-divider: rgba(58, 50, 43, 0.1);
+  --s2a-track: #f0e8dc;
+  --s2a-logo-bg: #f6e2d6;
+  --s2a-accent: #c26b4a;
+  --s2a-low: #7c9a5e;
+  --s2a-mid: #d9a441;
+  --s2a-high: #c8553d;
+  --s2a-claude-bg: #fbeae0;
+  --s2a-claude-ic: #c26b4a;
+  --s2a-codex-bg: #e3f1ec;
+  --s2a-codex-ic: #2f9e78;
+  --s2a-gem-bg: #e6eef8;
+  --s2a-gem-ic: #4f86c6;
+}
+html[data-theme='clay'][data-mode='dark'] {
+  --s2a-bg: #221d19;
+  --s2a-card: rgba(255, 255, 255, 0.035);
+  --s2a-card-border: rgba(255, 255, 255, 0.06);
+  --s2a-border: rgba(255, 255, 255, 0.06);
+  --s2a-text: #f0e9e0;
+  --s2a-muted: #897c6e;
+  --s2a-subhead: #c9bbaa;
+  --s2a-shadow: rgba(0, 0, 0, 0.55);
+  --s2a-chip-bg: rgba(255, 255, 255, 0.06);
+  --s2a-summary-bg: rgba(255, 255, 255, 0.04);
+  --s2a-divider: rgba(255, 255, 255, 0.08);
+  --s2a-track: rgba(255, 255, 255, 0.08);
+  --s2a-logo-bg: rgba(224, 147, 107, 0.18);
+  --s2a-accent: #e0936b;
+  --s2a-low: #9cb47a;
+  --s2a-mid: #e3b65a;
+  --s2a-high: #e08363;
+  --s2a-claude-bg: rgba(224, 147, 107, 0.16);
+  --s2a-claude-ic: #e0936b;
+  --s2a-codex-bg: rgba(47, 158, 120, 0.18);
+  --s2a-codex-ic: #62c49c;
+  --s2a-gem-bg: rgba(79, 134, 198, 0.18);
+  --s2a-gem-ic: #7fb0e8;
+}
+
+/* ---- 拿铁 Latte ---- */
+html[data-theme='latte'][data-mode='light'] {
+  --s2a-bg: #f3ebdf;
+  --s2a-card: #fbf6ed;
+  --s2a-card-border: #eaddc9;
+  --s2a-border: #e7dac6;
+  --s2a-text: #4a3a2c;
+  --s2a-muted: #a98f70;
+  --s2a-subhead: #6f5a45;
+  --s2a-shadow: rgba(74, 55, 40, 0.32);
+  --s2a-chip-bg: #eaddc9;
+  --s2a-summary-bg: #eaddc9;
+  --s2a-divider: rgba(74, 55, 40, 0.12);
+  --s2a-track: #eaddc9;
+  --s2a-logo-bg: #e2c9a8;
+  --s2a-accent: #b5713f;
+  --s2a-low: #7c8a4e;
+  --s2a-mid: #c98a3c;
+  --s2a-high: #bd5a36;
+  --s2a-claude-bg: #efd9c0;
+  --s2a-claude-ic: #b5713f;
+  --s2a-codex-bg: #d8e3cb;
+  --s2a-codex-ic: #4f7a3e;
+  --s2a-gem-bg: #d9e0ec;
+  --s2a-gem-ic: #5a77a8;
+}
+html[data-theme='latte'][data-mode='dark'] {
+  --s2a-bg: #241b12;
+  --s2a-card: rgba(255, 255, 255, 0.04);
+  --s2a-card-border: rgba(255, 255, 255, 0.07);
+  --s2a-border: rgba(255, 255, 255, 0.07);
+  --s2a-text: #f1e6d6;
+  --s2a-muted: #9c8870;
+  --s2a-subhead: #cdb79e;
+  --s2a-shadow: rgba(0, 0, 0, 0.55);
+  --s2a-chip-bg: rgba(255, 255, 255, 0.06);
+  --s2a-summary-bg: rgba(255, 255, 255, 0.045);
+  --s2a-divider: rgba(255, 255, 255, 0.09);
+  --s2a-track: rgba(255, 255, 255, 0.09);
+  --s2a-logo-bg: rgba(210, 150, 90, 0.2);
+  --s2a-accent: #d89a5e;
+  --s2a-low: #a6b575;
+  --s2a-mid: #dca94f;
+  --s2a-high: #d87b52;
+  --s2a-claude-bg: rgba(210, 150, 90, 0.18);
+  --s2a-claude-ic: #d89a5e;
+  --s2a-codex-bg: rgba(95, 140, 70, 0.2);
+  --s2a-codex-ic: #83ba68;
+  --s2a-gem-bg: rgba(90, 119, 168, 0.22);
+  --s2a-gem-ic: #86a6d6;
+}
+
+/* ---- 沙砾 Sage ---- */
+html[data-theme='sandSage'][data-mode='light'] {
+  --s2a-bg: #f1eee6;
+  --s2a-card: #fbfaf5;
+  --s2a-card-border: #e5e2d8;
+  --s2a-border: #e2ddd0;
+  --s2a-text: #3c3e34;
+  --s2a-muted: #9aa08c;
+  --s2a-subhead: #5e6152;
+  --s2a-shadow: rgba(60, 62, 52, 0.3);
+  --s2a-chip-bg: #e5e2d8;
+  --s2a-summary-bg: #e7e4da;
+  --s2a-divider: rgba(60, 62, 52, 0.12);
+  --s2a-track: #e5e2d8;
+  --s2a-logo-bg: #dce5d2;
+  --s2a-accent: #5c7a4e;
+  --s2a-low: #5c7a4e;
+  --s2a-mid: #d9a441;
+  --s2a-high: #c26b4a;
+  --s2a-claude-bg: #dce5d2;
+  --s2a-claude-ic: #5c7a4e;
+  --s2a-codex-bg: #dde6d4;
+  --s2a-codex-ic: #48714a;
+  --s2a-gem-bg: #e0e5ec;
+  --s2a-gem-ic: #5a77a8;
+}
+html[data-theme='sandSage'][data-mode='dark'] {
+  --s2a-bg: #1e211a;
+  --s2a-card: rgba(255, 255, 255, 0.035);
+  --s2a-card-border: rgba(255, 255, 255, 0.06);
+  --s2a-border: rgba(255, 255, 255, 0.06);
+  --s2a-text: #ebeee0;
+  --s2a-muted: #8b917e;
+  --s2a-subhead: #c2c7b2;
+  --s2a-shadow: rgba(0, 0, 0, 0.55);
+  --s2a-chip-bg: rgba(255, 255, 255, 0.06);
+  --s2a-summary-bg: rgba(255, 255, 255, 0.04);
+  --s2a-divider: rgba(255, 255, 255, 0.08);
+  --s2a-track: rgba(255, 255, 255, 0.08);
+  --s2a-logo-bg: rgba(124, 154, 94, 0.2);
+  --s2a-accent: #8db06e;
+  --s2a-low: #8db06e;
+  --s2a-mid: #e3b65a;
+  --s2a-high: #e0936b;
+  --s2a-claude-bg: rgba(124, 154, 94, 0.2);
+  --s2a-claude-ic: #8db06e;
+  --s2a-codex-bg: rgba(95, 140, 70, 0.2);
+  --s2a-codex-ic: #83ba68;
+  --s2a-gem-bg: rgba(90, 119, 168, 0.22);
+  --s2a-gem-ic: #86a6d6;
+}
+
+/* 悬浮窗透明背景；圆角卡片由根容器绘制 var(--s2a-bg) */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+:root {
+  color-scheme: light dark;
+}
+
+body {
+  background: transparent;
+  /* 暖色圆润字体：本机有 Nunito/思源黑体则用之，否则回退系统圆体 */
+  font-family: 'Nunito', 'Noto Sans SC', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* 顶部拖拽区域（无边框窗口需要） */
+.drag-region {
+  -webkit-app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
+}

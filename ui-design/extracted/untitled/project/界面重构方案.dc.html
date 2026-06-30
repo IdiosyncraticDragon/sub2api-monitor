@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#EFE9DF;font-family:"Nunito","Noto Sans SC",system-ui,sans-serif}
+.dv-turn{padding:38px 40px 30px;border-bottom:1px solid rgba(58,50,43,.1);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 6px}
+.dv-tid{font:800 11px "Nunito",monospace;padding:3px 8px;background:#3A322B;color:#fff;border-radius:6px;text-decoration:none;letter-spacing:.02em}
+.dv-tname{font:800 15px/1.2 "Nunito","Noto Sans SC",sans-serif;color:#3A322B}
+.dv-tsub{margin:0 0 22px;font:500 12.5px/1.55 "Nunito","Noto Sans SC",sans-serif;color:#8C7E6F;max-width:760px}
+.dv-opts{display:flex;flex-wrap:wrap;gap:30px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:11px;scroll-margin-top:16px}
+.dv-oid{font:800 11px "Nunito",monospace;padding:3px 8px;background:rgba(58,50,43,.1);color:#3A322B;border-radius:6px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:600 12px/1.35 "Nunito","Noto Sans SC",sans-serif;color:#8C7E6F;max-width:340px}
+.dv-opt:target .dv-oid{background:#C26B4A;color:#fff}
+.dv-next{margin:24px 0 0;font:500 12.5px/1.6 "Nunito","Noto Sans SC",sans-serif;color:#8C7E6F}
+.dv-next a{color:#C26B4A;text-decoration:none;font-weight:700}
+.dv-pair{display:flex;gap:16px;flex-wrap:wrap}
+.dv-tag{display:inline-block;font:600 10.5px "Nunito",sans-serif;color:#8C7E6F;padding:2px 8px;border:1px solid rgba(58,50,43,.16);border-radius:20px}
+.intro{padding:42px 40px 30px;border-bottom:1px solid rgba(58,50,43,.1)}
+.intro h1{font:900 24px/1.2 "Nunito","Noto Sans SC",sans-serif;color:#3A322B;margin:0 0 8px}
+.intro p{font:500 13px/1.65 "Nunito","Noto Sans SC",sans-serif;color:#6E6155;margin:0 0 14px;max-width:780px}
+.sys-row{display:flex;flex-wrap:wrap;gap:14px;margin-top:6px}
+.sys-card{background:#fff;border:1px solid rgba(58,50,43,.1);border-radius:14px;padding:14px 16px;min-width:170px;box-shadow:0 1px 2px rgba(58,50,43,.04)}
+.sys-card h3{font:800 11px "Nunito",sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#A89A8A;margin:0 0 9px}
+.sys-card .v{font:600 12.5px/1.5 "Nunito","Noto Sans SC",sans-serif;color:#3A322B}
+.sw{display:inline-block;width:18px;height:18px;border-radius:6px;vertical-align:-4px;margin-right:5px;border:1px solid rgba(0,0,0,.06)}
+</style>
+</helmet>
+
+<div class="intro">
+  <h1>Sub2API Monitor · 界面重构</h1>
+  <p>方向：柔和、圆润、有温度。暖色中性底（米 / 褐），圆角与轻投影，明暗自适应。字体用 Nunito（圆润数字）+ 思源黑体。账户卡片把<strong>会话窗口利用率（5h）</strong>做成主角的圆角进度条，辅以<strong>平台类型色点</strong>与<strong>最近使用</strong>。利用率分级用暖色交通灯：低=橄榄、中=蜂蜜、高=陶土红。</p>
+  <p style="color:#8C7E6F">本页按"轮次"纵向堆叠，最新在顶部。每个方案有稳定编号（如 <a href="#1a" style="color:#C26B4A;font-weight:700;text-decoration:none">1a</a>），在对话里直接说编号即可继续迭代。</p>
+  <div class="sys-row">
+    <div class="sys-card"><h3>字体</h3><div class="v">Nunito · 思源黑体<br><span style="color:#8C7E6F">圆润 / 数字友好</span></div></div>
+    <div class="sys-card"><h3>暖色底</h3><div class="v"><span class="sw" style="background:#FBF7F1"></span>奶油 #FBF7F1<br><span class="sw" style="background:#221D19"></span>暖夜 #221D19</div></div>
+    <div class="sys-card"><h3>利用率分级</h3><div class="v"><span class="sw" style="background:#7C9A5E"></span>低 橄榄<br><span class="sw" style="background:#D9A441"></span>中 蜂蜜　<span class="sw" style="background:#C8553D"></span>高 陶土</div></div>
+    <div class="sys-card"><h3>形状</h3><div class="v">窗角 20 · 卡角 14<br>胶囊药丸 · 轻投影</div></div>
+  </div>
+</div>
+
+<section class="dv-turn" id="t1">
+  <div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">首轮 · 全界面 + 配色 + 折叠态探索</span></div>
+  <p class="dv-tsub">1a–1c 探索三套暖色配色（含明暗）；1d–1f 探索折叠迷你条的三种交互；1g 登录/首配，1h 托盘菜单。每个窗体宽 320，即真实悬浮窗尺寸。</p>
+  <div class="dv-opts">
+
+    <div class="dv-opt" id="1a">
+      <div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>陶土 Clay · 主推配色（明 + 暗自适应）</div>
+      <div class="dv-pair">
+
+        <div style="width:320px;background:#FBF7F1;border:1px solid #EFE6D9;border-radius:20px;box-shadow:0 12px 30px -10px rgba(58,50,43,.28);overflow:hidden;color:#3A322B">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px 10px">
+            <div style="display:flex;align-items:center;gap:9px">
+              <span style="width:26px;height:26px;border-radius:9px;background:#F6E2D6;display:flex;align-items:center;justify-content:center;overflow:hidden"><img src="assets/sheep-clay.svg" alt="" style="width:20px;height:20px"></span>
+              <span style="font-weight:800;font-size:14px;letter-spacing:.01em">Sub2API <span style="font-weight:600;font-size:11px;color:#A89A8A">Monitor</span></span>
+            </div>
+            <div style="display:flex;gap:4px">
+              <span style="width:27px;height:27px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;color:#A89A8A;background:#F2E9DD">⟳</span>
+              <span style="width:27px;height:27px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;color:#A89A8A">⊟</span>
+              <span style="width:27px;height:27px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;color:#A89A8A">✕</span>
+            </div>
+          </div>
+
+          <div style="margin:0 12px 12px;padding:11px 13px;background:#F6EFE5;border-radius:14px;display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;flex-direction:column"><span style="font-size:18px;font-weight:800;line-height:1">1.2k</span><span style="font-size:10.5px;color:#A89A8A;margin-top:2px">今日 Token</span></div>
+            <div style="width:1px;height:26px;background:rgba(58,50,43,.1)"></div>
+            <div style="display:flex;flex-direction:column"><span style="font-size:18px;font-weight:800;line-height:1">340</span><span style="font-size:10.5px;color:#A89A8A;margin-top:2px">请求</span></div>
+            <div style="width:1px;height:26px;background:rgba(58,50,43,.1)"></div>
+            <div style="display:flex;flex-direction:column"><span style="font-size:18px;font-weight:800;line-height:1;color:#7C9A5E">6<span style="font-size:12px;color:#A89A8A">/8</span></span><span style="font-size:10.5px;color:#A89A8A;margin-top:2px">正常账户</span></div>
+          </div>
+
+          <div style="padding:0 12px 12px;display:flex;flex-direction:column;gap:11px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:0 2px">
+              <span style="font-size:12px;font-weight:800;color:#6E6155">默认分组</span>
+              <span style="font-size:10.5px;font-weight:700;color:#A89A8A;background:#F2E9DD;border-radius:20px;padding:1px 8px">3</span>
+            </div>
+
+            <div style="background:#fff;border:1px solid #EFE6D9;border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;gap:9px">
+                <span style="width:28px;height:28px;border-radius:9px;background:#FBEAE0;display:flex;align-items:center;justify-content:center;flex:none"><svg width="15" height="15" viewBox="0 0 16 16"><path d="M8 1.5V14.5M1.5 8H14.5M3.4 3.4L12.6 12.6M12.6 3.4L3.4 12.6" stroke="#C26B4A" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+                <span style="font-weight:800;font-size:13.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">主力 Claude</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#7C9A5E"><span style="width:7px;height:7px;border-radius:50%;background:#7C9A5E"></span>正常</span>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px"><span style="font-size:11px;color:#A89A8A;font-weight:600">会话 · 5h 窗口</span><span style="font-size:12.5px;font-weight:800;color:#7C9A5E">62%</span></div>
+                <div style="height:8px;border-radius:20px;background:#F0E8DC;overflow:hidden"><div style="width:62%;height:100%;border-radius:20px;background:#7C9A5E"></div></div>
+              </div>
+              <span style="font-size:11px;color:#A89A8A;font-weight:600">3 分钟前使用</span>
+            </div>
+
+            <div style="background:#fff;border:1px solid #EFE6D9;border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;gap:9px">
+                <span style="width:28px;height:28px;border-radius:9px;background:#FBEAE0;display:flex;align-items:center;justify-content:center;flex:none"><svg width="15" height="15" viewBox="0 0 16 16"><path d="M8 1.5V14.5M1.5 8H14.5M3.4 3.4L12.6 12.6M12.6 3.4L3.4 12.6" stroke="#C26B4A" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+                <span style="font-weight:800;font-size:13.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">备用 Claude</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#C8553D"><span style="width:7px;height:7px;border-radius:50%;background:#C8553D"></span>正常</span>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px"><span style="font-size:11px;color:#A89A8A;font-weight:600">会话 · 5h 窗口</span><span style="font-size:12.5px;font-weight:800;color:#C8553D">88%</span></div>
+                <div style="height:8px;border-radius:20px;background:#F0E8DC;overflow:hidden"><div style="width:88%;height:100%;border-radius:20px;background:#C8553D"></div></div>
+              </div>
+              <span style="font-size:11px;color:#A89A8A;font-weight:600">12 分钟前使用</span>
+            </div>
+
+            <div style="background:#fff;border:1px solid #EFE6D9;border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;gap:9px">
+                <span style="width:28px;height:28px;border-radius:9px;background:#E3F1EC;display:flex;align-items:center;justify-content:center;flex:none"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#2F9E78" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5M9.2 3.5L6.8 12.5"/></svg></span>
+                <span style="font-weight:800;font-size:13.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Codex 工作号</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#7C9A5E"><span style="width:7px;height:7px;border-radius:50%;background:#7C9A5E"></span>正常</span>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px"><span style="font-size:11px;color:#A89A8A;font-weight:600">会话 · 5h 窗口</span><span style="font-size:12.5px;font-weight:800;color:#7C9A5E">34%</span></div>
+                <div style="height:8px;border-radius:20px;background:#F0E8DC;overflow:hidden"><div style="width:34%;height:100%;border-radius:20px;background:#7C9A5E"></div></div>
+              </div>
+              <span style="font-size:11px;color:#A89A8A;font-weight:600">1 小时前使用</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="width:320px;background:#221D19;border:1px solid rgba(255,255,255,.06);border-radius:20px;box-shadow:0 12px 30px -10px rgba(0,0,0,.5);overflow:hidden;color:#F0E9E0">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px 10px">
+            <div style="display:flex;align-items:center;gap:9px">
+              <span style="width:26px;height:26px;border-radius:9px;background:rgba(224,147,107,.18);display:flex;align-items:center;justify-content:center;overflow:hidden"><img src="assets/sheep-clay.svg" alt="" style="width:20px;height:20px"></span>
+              <span style="font-weight:800;font-size:14px">Sub2API <span style="font-weight:600;font-size:11px;color:#897C6E">Monitor</span></span>
+            </div>
+            <div style="display:flex;gap:4px">
+              <span style="width:27px;height:27px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;color:#897C6E;background:rgba(255,255,255,.06)">⟳</span>
+              <span style="width:27px;height:27px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;color:#897C6E">⊟</span>
+              <span style="width:27px;height:27px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;color:#897C6E">✕</span>
+            </div>
+          </div>
+          <div style="margin:0 12px 12px;padding:11px 13px;background:rgba(255,255,255,.04);border-radius:14px;display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;flex-direction:column"><span style="font-size:18px;font-weight:800;line-height:1">1.2k</span><span style="font-size:10.5px;color:#897C6E;margin-top:2px">今日 Token</span></div>
+            <div style="width:1px;height:26px;background:rgba(255,255,255,.08)"></div>
+            <div style="display:flex;flex-direction:column"><span style="font-size:18px;font-weight:800;line-height:1">340</span><span style="font-size:10.5px;color:#897C6E;margin-top:2px">请求</span></div>
+            <div style="width:1px;height:26px;background:rgba(255,255,255,.08)"></div>
+            <div style="display:flex;flex-direction:column"><span style="font-size:18px;font-weight:800;line-height:1;color:#9CB47A">6<span style="font-size:12px;color:#897C6E">/8</span></span><span style="font-size:10.5px;color:#897C6E;margin-top:2px">正常账户</span></div>
+          </div>
+          <div style="padding:0 12px 12px;display:flex;flex-direction:column;gap:11px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:0 2px">
+              <span style="font-size:12px;font-weight:800;color:#C9BBAA">默认分组</span>
+              <span style="font-size:10.5px;font-weight:700;color:#897C6E;background:rgba(255,255,255,.06);border-radius:20px;padding:1px 8px">3</span>
+            </div>
+            <div style="background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;gap:9px">
+                <span style="width:28px;height:28px;border-radius:9px;background:rgba(224,147,107,.16);display:flex;align-items:center;justify-content:center;flex:none"><svg width="15" height="15" viewBox="0 0 16 16"><path d="M8 1.5V14.5M1.5 8H14.5M3.4 3.4L12.6 12.6M12.6 3.4L3.4 12.6" stroke="#E0936B" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+                <span style="font-weight:800;font-size:13.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">主力 Claude</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#9CB47A"><span style="width:7px;height:7px;border-radius:50%;background:#9CB47A"></span>正常</span>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px"><span style="font-size:11px;color:#897C6E;font-weight:600">会话 · 5h 窗口</span><span style="font-size:12.5px;font-weight:800;color:#9CB47A">62%</span></div>
+                <div style="height:8px;border-radius:20px;background:rgba(255,255,255,.08);overflow:hidden"><div style="width:62%;height:100%;border-radius:20px;background:#9CB47A"></div></div>
+              </div>
+              <span style="font-size:11px;color:#897C6E;font-weight:600">3 分钟前使用</span>
+            </div>
+            <div style="background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;gap:9px">
+                <span style="width:28px;height:28px;border-radius:9px;background:rgba(224,147,107,.16);display:flex;align-items:center;justify-content:center;flex:none"><svg width="15" height="15" viewBox="0 0 16 16"><path d="M8 1.5V14.5M1.5 8H14.5M3.4 3.4L12.6 12.6M12.6 3.4L3.4 12.6" stroke="#E0936B" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+                <span style="font-weight:800;font-size:13.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">备用 Claude</span>
+                <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#E08363"><span style="width:7px;height:7px;border-radius:50%;background:#E08363"></span>正常</span>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px"><span style="font-size:11px;color:#897C6E;font-weight:600">会话 · 5h 窗口</span><span style="font-size:12.5px;font-weight:800;color:#E08363">88%</span></div>
+                <div style="height:8px;border-radius:20px;background:rgba(255,255,255,.08);overflow:hidden"><div style="width:88%;height:100%;border-radius:20px;background:#E08363"></div></div>
+              </div>
+              <span style="font-size:11px;color:#897C6E;font-weight:600">12 分钟前使用</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="dv-opt" id="1b">
+      <div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>拿铁 Latte · 咖啡褐暖色，奶泡卡片</div>
+      <div style="width:320px;background:#F3EBDF;border:1px solid #E7DAC6;border-radius:20px;box-shadow:0 12px 30px -10px rgba(74,55,40,.3);overflow:hidden;color:#4A3A2C">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px 10px">
+          <div style="display:flex;align-items:center;gap:9px">
+            <span style="width:26px;height:26px;border-radius:9px;background:#E2C9A8;display:flex;align-items:center;justify-content:center;overflow:hidden"><img src="assets/sheep-clay.svg" alt="" style="width:20px;height:20px"></span>
+            <span style="font-weight:800;font-size:14px">Sub2API <span style="font-weight:600;font-size:11px;color:#A98F70">Monitor</span></span>
+          </div>
+          <div style="display:flex;gap:4px">
+            <span style="width:27px;height:27px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;color:#A98F70;background:#EADDC9">⟳</span>
+            <span style="width:27px;height:27px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;color:#A98F70">✕</span>
+          </div>
+        </div>
+        <div style="margin:0 12px 12px;padding:11px 13px;background:#EADDC9;border-radius:14px;display:flex;justify-content:space-between;align-items:center">
+          <div style="display:flex;flex-direction:column"><span style="font-size:18px;font-weight:800;line-height:1">1.2k</span><span style="font-size:10.5px;color:#A98F70;margin-top:2px">今日 Token</span></div>
+          <div style="width:1px;height:26px;background:rgba(74,55,40,.12)"></div>
+          <div style="display:flex;flex-direction:column"><span style="font-size:18px;font-weight:800;line-height:1">340</span><span style="font-size:10.5px;color:#A98F70;margin-top:2px">请求</span></div>
+          <div style="width:1px;height:26px;background:rgba(74,55,40,.12)"></div>
+          <div style="display:flex;flex-direction:column"><span style="font-size:18px;font-weight:800;line-height:1;color:#8A6D4B">6<span style="font-size:12px;color:#A98F70">/8</span></span><span style="font-size:10.5px;color:#A98F70;margin-top:2px">正常账户</span></div>
+        </div>
+        <div style="padding:0 12px 12px;display:flex;flex-direction:column;gap:11px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:0 2px"><span style="font-size:12px;font-weight:800;color:#6F5A45">默认分组</span><span style="font-size:10.5px;font-weight:700;color:#A98F70;background:#EADDC9;border-radius:20px;padding:1px 8px">3</span></div>
+          <div style="background:#FBF6ED;border:1px solid #EADDC9;border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:9px">
+              <span style="width:28px;height:28px;border-radius:9px;background:#EFD9C0;display:flex;align-items:center;justify-content:center;flex:none"><svg width="15" height="15" viewBox="0 0 16 16"><path d="M8 1.5V14.5M1.5 8H14.5M3.4 3.4L12.6 12.6M12.6 3.4L3.4 12.6" stroke="#B5713F" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+              <span style="font-weight:800;font-size:13.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">主力 Claude</span>
+              <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#7C8A4E"><span style="width:7px;height:7px;border-radius:50%;background:#7C8A4E"></span>正常</span>
+            </div>
+            <div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px"><span style="font-size:11px;color:#A98F70;font-weight:600">会话 · 5h 窗口</span><span style="font-size:12.5px;font-weight:800;color:#7C8A4E">62%</span></div><div style="height:8px;border-radius:20px;background:#EADDC9;overflow:hidden"><div style="width:62%;height:100%;border-radius:20px;background:#7C8A4E"></div></div></div>
+            <span style="font-size:11px;color:#A98F70;font-weight:600">3 分钟前使用</span>
+          </div>
+          <div style="background:#FBF6ED;border:1px solid #EADDC9;border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:9px">
+              <span style="width:28px;height:28px;border-radius:9px;background:#D8E3CB;display:flex;align-items:center;justify-content:center;flex:none"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="#4F7A3E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 4.5L2 8l3.5 3.5M10.5 4.5L14 8l-3.5 3.5M9.2 3.5L6.8 12.5"/></svg></span>
+              <span style="font-weight:800;font-size:13.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Codex 工作号</span>
+              <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#C98A3C"><span style="width:7px;height:7px;border-radius:50%;background:#C98A3C"></span>正常</span>
+            </div>
+            <div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px"><span style="font-size:11px;color:#A98F70;font-weight:600">会话 · 5h 窗口</span><span style="font-size:12.5px;font-weight:800;color:#C98A3C">71%</span></div><div style="height:8px;border-radius:20px;background:#EADDC9;overflow:hidden"><div style="width:71%;height:100%;border-radius:20px;background:#C98A3C"></div></div></div>
+            <span style="font-size:11px;color:#A98F70;font-weight:600">28 分钟前使用</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="1c">
+      <div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>沙砾 &amp; 鼠尾草 · 沙底 + 鼠尾草绿强调</div>
+      <div style="width:320px;background:#F1EEE6;border:1px solid #E2DDD0;border-radius:20px;box-shadow:0 12px 30px -10px rgba(60,62,52,.26);overflow:hidden;color:#3C3E34">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px 10px">
+          <div style="display:flex;align-items:center;gap:9px">
+            <span style="width:26px;height:26px;border-radius:9px;background:#DCE5D2;display:flex;align-items:center;justify-content:center;overflow:hidden"><img src="assets/sheep-clay.svg" alt="" style="width:20px;height:20px"></span>
+            <span style="font-weight:800;font-size:14px">Sub2API <span style="font-weight:600;font-size:11px;color:#9AA08C">Monitor</span></span>
+          </div>
+          <div style="display:flex;gap:4px">
+            <span style="width:27px;height:27px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;color:#9AA08C;background:#E5E2D8">⟳</span>
+            <span style="width:27px;height:27px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:13px;color:#9AA08C">✕</span>
+          </div>
+        </div>
+        <div style="margin:0 12px 12px;padding:11px 13px;background:#E7E4DA;border-radius:14px;display:flex;justify-content:space-between;align-items:center">
+          <div style="display:flex;flex-direction:column"><span style="font-size:18px;font-weight:800;line-height:1">1.2k</span><span style="font-size:10.5px;color:#9AA08C;margin-top:2px">今日 Token</span></div>
+          <div style="width:1px;height:26px;background:rgba(60,62,52,.12)"></div>
+          <div style="display:flex;flex-direction:column"><span style="font-size:18px;font-weight:800;line-height:1">340</span><span style="font-size:10.5px;color:#9AA08C;margin-top:2px">请求</span></div>
+          <div style="width:1px;height:26px;background:rgba(60,62,52,.12)"></div>
+          <div style="display:flex;flex-direction:column"><span style="font-size:18px;font-weight:800;line-height:1;color:#5C7A4E">6<span style="font-size:12px;color:#9AA08C">/8</span></span><span style="font-size:10.5px;color:#9AA08C;margin-top:2px">正常账户</span></div>
+        </div>
+        <div style="padding:0 12px 12px;display:flex;flex-direction:column;gap:11px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:0 2px"><span style="font-size:12px;font-weight:800;color:#5E6152">默认分组</span><span style="font-size:10.5px;font-weight:700;color:#9AA08C;background:#E5E2D8;border-radius:20px;padding:1px 8px">3</span></div>
+          <div style="background:#FBFAF5;border:1px solid #E5E2D8;border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:9px">
+              <span style="width:28px;height:28px;border-radius:9px;background:#DCE5D2;display:flex;align-items:center;justify-content:center;flex:none"><svg width="15" height="15" viewBox="0 0 16 16"><path d="M8 1.5V14.5M1.5 8H14.5M3.4 3.4L12.6 12.6M12.6 3.4L3.4 12.6" stroke="#5C7A4E" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+              <span style="font-weight:800;font-size:13.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">主力 Claude</span>
+              <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#5C7A4E"><span style="width:7px;height:7px;border-radius:50%;background:#5C7A4E"></span>正常</span>
+            </div>
+            <div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px"><span style="font-size:11px;color:#9AA08C;font-weight:600">会话 · 5h 窗口</span><span style="font-size:12.5px;font-weight:800;color:#5C7A4E">62%</span></div><div style="height:8px;border-radius:20px;background:#E5E2D8;overflow:hidden"><div style="width:62%;height:100%;border-radius:20px;background:#5C7A4E"></div></div></div>
+            <span style="font-size:11px;color:#9AA08C;font-weight:600">3 分钟前使用</span>
+          </div>
+          <div style="background:#FBFAF5;border:1px solid #E5E2D8;border-radius:14px;padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:9px">
+              <span style="width:28px;height:28px;border-radius:9px;background:#DCE5D2;display:flex;align-items:center;justify-content:center;flex:none"><svg width="15" height="15" viewBox="0 0 16 16"><path d="M8 1.5V14.5M1.5 8H14.5M3.4 3.4L12.6 12.6M12.6 3.4L3.4 12.6" stroke="#5C7A4E" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+              <span style="font-weight:800;font-size:13.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">备用 Claude</span>
+              <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#C26B4A"><span style="width:7px;height:7px;border-radius:50%;background:#C26B4A"></span>正常</span>
+            </div>
+            <div><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px"><span style="font-size:11px;color:#9AA08C;font-weight:600">会话 · 5h 窗口</span><span style="font-size:12.5px;font-weight:800;color:#C26B4A">88%</span></div><div style="height:8px;border-radius:20px;background:#E5E2D8;overflow:hidden"><div style="width:88%;height:100%;border-radius:20px;background:#C26B4A"></div></div></div>
+            <span style="font-size:11px;color:#9AA08C;font-weight:600">12 分钟前使用</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="1d">
+      <div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>折叠态 · 进度环排（悬停高亮 + 提示）</div>
+      <div style="width:300px;background:#FBF7F1;border:1px solid #EFE6D9;border-radius:18px;box-shadow:0 10px 24px -10px rgba(58,50,43,.28);padding:9px 11px;display:flex;align-items:center;gap:8px">
+        <span style="width:18px;height:26px;border-radius:7px;background:#F2E9DD;display:flex;align-items:center;justify-content:center;color:#C0AF9B;font-size:11px;cursor:grab;flex:none">⋮⋮</span>
+        <div style="display:flex;gap:7px;flex:1">
+          <sc-for list="{{ rings }}" as="r" hint-placeholder-count="4">
+            <div onMouseEnter="{{ r.onEnter }}" onMouseLeave="{{ r.onLeave }}" style="position:relative;width:30px;height:30px;cursor:pointer">
+              <svg width="30" height="30" viewBox="0 0 30 30">
+                <circle cx="15" cy="15" r="13" fill="none" stroke="#F0E8DC" stroke-width="3.5"></circle>
+                <circle cx="15" cy="15" r="13" fill="none" stroke="{{ r.color }}" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="{{ r.dash }} {{ r.circ }}" transform="rotate(-90 15 15)"></circle>
+              </svg>
+              <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:{{ r.color }}">{{ r.pct }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <span style="width:26px;height:26px;border-radius:8px;background:#F6E2D6;display:flex;align-items:center;justify-content:center;color:#C26B4A;font-size:13px;cursor:pointer;flex:none">⤢</span>
+      </div>
+      <div style="margin-top:7px;font-size:11px;font-weight:700;color:#8C7E6F;text-align:center;background:#F2E9DD;border-radius:20px;padding:4px 0">{{ ringTipText }}</div>
+    </div>
+
+    <div class="dv-opt" id="1e">
+      <div class="dv-olabel"><a class="dv-oid" href="#1e">1e</a>折叠态 · 分段药丸（一条概览，悬停看名）</div>
+      <div style="width:300px;background:#FBF7F1;border:1px solid #EFE6D9;border-radius:18px;box-shadow:0 10px 24px -10px rgba(58,50,43,.28);padding:10px 11px;display:flex;align-items:center;gap:9px">
+        <span style="width:16px;height:24px;display:flex;align-items:center;justify-content:center;color:#C0AF9B;font-size:11px;cursor:grab;flex:none">⋮⋮</span>
+        <div style="flex:1;display:flex;gap:3px;height:12px;border-radius:20px;overflow:hidden;background:#F0E8DC">
+          <sc-for list="{{ segs }}" as="s" hint-placeholder-count="4">
+            <div onMouseEnter="{{ s.onEnter }}" onMouseLeave="{{ s.onLeave }}" style="flex:1;background:{{ s.color }};cursor:pointer;border-radius:20px"></div>
+          </sc-for>
+        </div>
+        <span style="width:26px;height:26px;border-radius:8px;background:#F6E2D6;display:flex;align-items:center;justify-content:center;color:#C26B4A;font-size:13px;cursor:pointer;flex:none">⤢</span>
+      </div>
+      <div style="margin-top:7px;font-size:11px;font-weight:700;color:#8C7E6F;text-align:center;background:#F2E9DD;border-radius:20px;padding:4px 0">{{ segTipText }}</div>
+    </div>
+
+    <div class="dv-opt" id="1f">
+      <div class="dv-olabel"><a class="dv-oid" href="#1f">1f</a>折叠态 · 聚光泡（只盯最紧张的，点圆点切换）</div>
+      <div style="width:300px;background:#FBF7F1;border:1px solid #EFE6D9;border-radius:18px;box-shadow:0 10px 24px -10px rgba(58,50,43,.28);padding:10px 11px;display:flex;align-items:center;gap:10px">
+        <span style="width:34px;height:34px;border-radius:11px;background:{{ spot.bg }};display:flex;align-items:center;justify-content:center;color:{{ spot.icon }};font-size:15px;font-weight:800;flex:none">{{ spot.glyph }}</span>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px"><span style="font-size:12px;font-weight:800;color:#3A322B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ spot.name }}</span><span style="font-size:12px;font-weight:800;color:{{ spot.color }}">{{ spot.pct }}%</span></div>
+          <div style="height:7px;border-radius:20px;background:#F0E8DC;overflow:hidden"><div style="height:100%;border-radius:20px;background:{{ spot.color }};width:{{ spot.pct }}%"></div></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;flex:none">
+          <sc-for list="{{ dots }}" as="d" hint-placeholder-count="4">
+            <span onClick="{{ d.pick }}" style="width:9px;height:9px;border-radius:50%;cursor:pointer;background:{{ d.color }}"></span>
+          </sc-for>
+        </div>
+      </div>
+      <div style="margin-top:7px;font-size:11px;font-weight:700;color:#8C7E6F;text-align:center;background:#F2E9DD;border-radius:20px;padding:4px 0">最近 {{ spot.last }} · 点圆点切账户</div>
+    </div>
+
+    <div class="dv-opt" id="1g">
+      <div class="dv-olabel"><a class="dv-oid" href="#1g">1g</a>首次配置 / 登录</div>
+      <div style="width:320px;background:#FBF7F1;border:1px solid #EFE6D9;border-radius:20px;box-shadow:0 12px 30px -10px rgba(58,50,43,.28);overflow:hidden;color:#3A322B;padding:26px 22px 22px;display:flex;flex-direction:column;align-items:center;text-align:center">
+        <span style="width:64px;height:64px;border-radius:20px;background:#F6E2D6;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:14px"><img src="assets/sheep-clay.svg" alt="" style="width:48px;height:48px"></span>
+        <h2 style="font-size:18px;font-weight:900;margin:0 0 4px">连接到 Sub2API</h2>
+        <p style="font-size:12px;color:#8C7E6F;line-height:1.55;margin:0 0 18px;font-weight:500">填入后台地址与密钥，小绵羊就开始替你盯着账户的额度啦。</p>
+        <div style="width:100%;display:flex;flex-direction:column;gap:10px;text-align:left">
+          <label style="font-size:11px;font-weight:800;color:#6E6155">后台地址<input value="https://sub2api.example.com" style="margin-top:5px;width:100%;border:1px solid #E4D8C7;background:#fff;border-radius:11px;padding:10px 12px;font-size:12.5px;font-family:inherit;color:#3A322B;font-weight:600"></label>
+          <label style="font-size:11px;font-weight:800;color:#6E6155">API 密钥<input value="••••••••••••••••" style="margin-top:5px;width:100%;border:1px solid #E4D8C7;background:#fff;border-radius:11px;padding:10px 12px;font-size:12.5px;font-family:inherit;color:#3A322B;font-weight:600"></label>
+        </div>
+        <button style="margin-top:16px;width:100%;border:none;background:#C26B4A;color:#fff;font-size:13.5px;font-weight:800;font-family:inherit;border-radius:12px;padding:11px 0;cursor:pointer;box-shadow:0 6px 14px -6px rgba(194,107,74,.7)">连接并开始监控</button>
+        <span style="margin-top:10px;font-size:11px;color:#A89A8A;font-weight:600">凭据仅保存在本机</span>
+      </div>
+    </div>
+
+    <div class="dv-opt" id="1h">
+      <div class="dv-olabel"><a class="dv-oid" href="#1h">1h</a>系统托盘菜单</div>
+      <div style="width:230px;background:#FBF7F1;border:1px solid #EFE6D9;border-radius:14px;box-shadow:0 14px 34px -10px rgba(58,50,43,.34);overflow:hidden;color:#3A322B;padding:6px">
+        <div style="display:flex;align-items:center;gap:9px;padding:8px 10px 9px;border-bottom:1px solid #EFE6D9;margin-bottom:4px">
+          <span style="width:24px;height:24px;border-radius:7px;background:#F6E2D6;display:flex;align-items:center;justify-content:center;overflow:hidden"><img src="assets/sheep-clay.svg" alt="" style="width:18px;height:18px"></span>
+          <div style="display:flex;flex-direction:column"><span style="font-size:12px;font-weight:800;line-height:1.1">Sub2API Monitor</span><span style="font-size:10px;color:#7C9A5E;font-weight:700;margin-top:1px">● 6/8 账户正常</span></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:9px;font-size:12.5px;font-weight:600;cursor:pointer" style-hover="background:#F2E9DD"><span>显示窗口</span></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:9px;font-size:12.5px;font-weight:600;cursor:pointer" style-hover="background:#F2E9DD"><span>立即刷新</span><span style="font-size:11px;color:#A89A8A">⌘R</span></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:9px;font-size:12.5px;font-weight:600;cursor:pointer" style-hover="background:#F2E9DD"><span>开机自启</span><span style="width:30px;height:17px;border-radius:20px;background:#C26B4A;position:relative;flex:none"><span style="position:absolute;top:2px;right:2px;width:13px;height:13px;border-radius:50%;background:#fff"></span></span></div>
+        <div style="height:1px;background:#EFE6D9;margin:4px 6px"></div>
+        <div style="display:flex;align-items:center;padding:8px 10px;border-radius:9px;font-size:12.5px;font-weight:600;color:#C8553D;cursor:pointer" style-hover="background:#FBEAE0">退出</div>
+      </div>
+    </div>
+
+  </div>
+  <p class="dv-next">继续：试试 "<a href="#1a">1a</a> 但密度更紧凑" · "把折叠态都做成可交互的" · "再来几套配色方向"</p>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { ringHover: null, segHover: null, spotIdx: 1 }
+  accts() {
+    return [
+      { name: '主力 Claude', pct: 62, color: '#7C9A5E', glyph: '✳', bg: '#FBEAE0', icon: '#C26B4A', last: '3 分钟前' },
+      { name: '备用 Claude', pct: 88, color: '#C8553D', glyph: '✳', bg: '#FBEAE0', icon: '#C26B4A', last: '12 分钟前' },
+      { name: 'Codex 工作号', pct: 34, color: '#7C9A5E', glyph: '‹›', bg: '#E3F1EC', icon: '#2F9E78', last: '1 小时前' },
+      { name: 'Gemini 试验', pct: 71, color: '#D9A441', glyph: '✦', bg: '#E6EEF8', icon: '#4F86C6', last: '40 分钟前' },
+    ]
+  }
+  renderVals() {
+    const C = 2 * Math.PI * 13
+    const rings = this.accts().map((a, i) => ({
+      ...a, i, circ: C, dash: (a.pct / 100) * C,
+      onEnter: () => this.setState({ ringHover: i }),
+      onLeave: () => this.setState({ ringHover: null }),
+    }))
+    const segs = this.accts().map((a, i) => ({
+      ...a, i,
+      onEnter: () => this.setState({ segHover: i }),
+      onLeave: () => this.setState({ segHover: null }),
+    }))
+    const ringTip = this.state.ringHover != null ? this.accts()[this.state.ringHover] : null
+    const segTip = this.state.segHover != null ? this.accts()[this.state.segHover] : null
+    const dots = this.accts().map((a, i) => ({ ...a, i, active: i === this.state.spotIdx, pick: () => this.setState({ spotIdx: i }) }))
+    const spot = this.accts()[this.state.spotIdx]
+    return {
+      rings, segs, dots, spot,
+      ringTipText: ringTip ? ringTip.name + ' · ' + ringTip.pct + '%' : '悬停查看账户',
+      segTipText: segTip ? segTip.name + ' · 会话 ' + segTip.pct + '%' : '4 个账户 · 点击展开主窗',
+    }
+  }
+}
+</script>
+</body>
+</html>

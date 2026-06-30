@@ -1,0 +1,41 @@
+appId: com.sub2api.watchdog
+productName: Sub2API Monitor
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**/*
+  - package.json
+extraResources:
+  - from: build/tray.png
+    to: tray.png
+  # macOS 托盘模板图（含 @2x，nativeImage 按文件名自动匹配）
+  - from: build/trayTemplate.png
+    to: trayTemplate.png
+  - from: build/trayTemplate@2x.png
+    to: trayTemplate@2x.png
+
+# Windows（v1.0 交付目标）
+win:
+  target:
+    - nsis
+    - portable
+  icon: build/icon.ico   # 多分辨率 ico（含 256²），用于安装包/exe/任务栏
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+
+# macOS
+mac:
+  target:
+    - dmg
+    - zip
+  category: public.app-category.developer-tools
+  icon: build/icon.png
+  # 纯菜单栏应用：隐藏 dock 图标（代码侧已 app.dock.hide()，此处声明为 accessory 更彻底）
+  extendInfo:
+    LSUIElement: true
+  # TODO(分发): 代码签名 / 公证需 Apple ID + 证书，本地自测可不签名：
+  # hardenedRuntime: true
+  # notarize: true

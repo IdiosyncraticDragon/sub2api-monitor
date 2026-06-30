@@ -1,0 +1,56 @@
+{
+  "name": "sub2api-monitor",
+  "version": "0.1.0",
+  "description": "桌面助手 - 实时监控 Sub2API 后台正常账户的状态、用量与最近使用",
+  "main": "./out/main/index.js",
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/IdiosyncraticDragon/sub2api-monitor.git"
+  },
+  "homepage": "https://github.com/IdiosyncraticDragon/sub2api-monitor#readme",
+  "bugs": {
+    "url": "https://github.com/IdiosyncraticDragon/sub2api-monitor/issues"
+  },
+  "scripts": {
+    "icons": "node scripts/gen-icon.cjs",
+    "dev": "node scripts/gen-icon.cjs && electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "start": "electron-vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:cov": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "build:win": "node scripts/gen-icon.cjs && electron-vite build && electron-builder --win",
+    "build:mac": "node scripts/gen-icon.cjs && electron-vite build && electron-builder --mac"
+  },
+  "dependencies": {
+    "electron-store": "^8.2.0",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.4.8",
+    "@testing-library/react": "^16.0.1",
+    "@types/node": "^20.19.0",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "@vitest/coverage-v8": "^2.0.5",
+    "autoprefixer": "^10.4.20",
+    "electron": "^31.4.0",
+    "electron-builder": "^24.13.3",
+    "electron-vite": "^2.3.0",
+    "happy-dom": "^15.7.4",
+    "postcss": "^8.4.45",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwindcss": "^3.4.10",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.3",
+    "vitest": "^2.0.5"
+  }
+}
