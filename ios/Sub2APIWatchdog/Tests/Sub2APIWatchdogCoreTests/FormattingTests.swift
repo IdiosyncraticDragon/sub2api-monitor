@@ -12,6 +12,16 @@ final class FormattingTests: XCTestCase {
         XCTAssertEqual(WatchdogFormat.tokens(2_500_000), "2.5M")
     }
 
+    func testOpenAIUsagePercentFieldsNormalizeToFractions() throws {
+        let extra = try JSONDecoder().decode(AccountExtra.self, from: Data("""
+        {"codex_5h_used_percent":42,"codex_7d_used_percent":87}
+        """.utf8))
+
+        XCTAssertEqual(WatchdogFormat.sessionUtilization(extra), 0.42)
+        XCTAssertEqual(WatchdogFormat.weeklyUtilization(extra), 0.87)
+        XCTAssertEqual(WatchdogFormat.percent(WatchdogFormat.sessionUtilization(extra)), "42%")
+    }
+
     func testLastUsed() {
         let now = ISO8601DateFormatter().date(from: "2026-06-29T12:00:00Z")!
         XCTAssertEqual(WatchdogFormat.lastUsed("2026-06-29T11:58:00Z", now: now), "2m ago")

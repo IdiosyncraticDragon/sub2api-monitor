@@ -1,5 +1,5 @@
 import { BrowserWindow } from 'electron'
-import { extractToken, findAccessToken, findRefreshToken, type StorageEntry } from '../core/jwt'
+import { extractToken, findRefreshToken, findUsableAccessToken, type StorageEntry } from '../core/jwt'
 
 const POLL_INTERVAL_MS = 1500
 
@@ -8,11 +8,17 @@ export interface LoginResult {
   refreshToken: string | null
 }
 
+export interface LoginWindowOptions {
+  clearStaleCredentials?: boolean
+  now?: () => Date
+}
+
 // 登录窗：加载（可配置的）站点让用户登录一次，轮询读取存储中的凭证。
 // 用户在此窗口内完成登录（Electron 会话独立于系统 Chrome），成功后提取 JWT。
 export function openLoginWindow(
   siteUrl: string,
-  onSuccess: (result: LoginResult) => void
+  onSuccess: (result: LoginResult) => void,
+  options: LoginWindowOptions = {}
 ): BrowserWindow {
   const win = new BrowserWindow({
     width: 480,
@@ -27,15 +33,44 @@ export function openLoginWindow(
     }
   })
 
-  win.loadURL(siteUrl)
-
   let timer: NodeJS.Timeout | null = null
   let settled = false
+  let staleCleared = false
+  const now = options.now ?? (() => new Date())
 
   const stop = (): void => {
     if (timer) {
       clearInterval(timer)
       timer = null
+    }
+  }
+
+  const clearStorage = async (): Promise<void> => {
+    if (staleCleared || !options.clearStaleCredentials || win.isDestroyed()) return
+    staleCleared = true
+    try {
+      await win.webContents.executeJavaScript(
+        `(function () {
+           var jwtRe = /eyJ[\\w-]+\\.[\\w-]+\\.[\\w-]+/
+           function removeJwtEntries(store) {
+             try {
+               var keys = []
+               for (var i = 0; i < store.length; i++) {
+                 var key = store.key(i)
+                 var value = key ? store.getItem(key) : null
+                 if (key && jwtRe.test(String(value || ''))) keys.push(key)
+               }
+               for (var j = 0; j < keys.length; j++) store.removeItem(keys[j])
+             } catch (e) {}
+           }
+           removeJwtEntries(window.localStorage)
+           removeJwtEntries(window.sessionStorage)
+         })()`,
+        true
+      )
+      if (!win.isDestroyed()) await win.loadURL(siteUrl)
+    } catch {
+      // Storage may be unavailable while the page is still navigating.
     }
   }
 
@@ -64,17 +99,21 @@ export function openLoginWindow(
         true
       )) as string
       const entries = JSON.parse(raw) as StorageEntry[]
-      const token = extractToken(findAccessToken(entries))
+      const token = extractToken(findUsableAccessToken(entries, now()))
       if (token) {
         settled = true
         stop()
         onSuccess({ token, refreshToken: extractToken(findRefreshToken(entries)) })
         if (!win.isDestroyed()) win.close()
+        return
       }
+      if (entries.some((entry) => entry.value?.includes('eyJ'))) await clearStorage()
     } catch {
       // 页面未就绪 / 跨域读取异常，下个周期重试
     }
   }
+
+  win.loadURL(siteUrl)
 
   win.webContents.on('did-finish-load', () => {
     void readCredentials()

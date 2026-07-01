@@ -46,6 +46,30 @@ export function formatWindowRange(
   return `${a}–${b}`
 }
 
+/** 从 ISO 字符串的墙上时钟时间回退指定小时数，不做本机时区换算。 */
+function hhmmMinusHours(iso: string | null | undefined, hours: number): string | null {
+  if (!iso || !Number.isFinite(hours)) return null
+  const m = iso.match(/T(\d{2}):(\d{2})/)
+  if (!m) return null
+  const minutesInDay = 24 * 60
+  const raw = Number(m[1]) * 60 + Number(m[2]) - Math.round(hours * 60)
+  const minutes = ((raw % minutesInDay) + minutesInDay) % minutesInDay
+  const hh = String(Math.floor(minutes / 60)).padStart(2, '0')
+  const mm = String(minutes % 60).padStart(2, '0')
+  return `${hh}:${mm}`
+}
+
+/** 只有结束时间时，按固定时长反推窗口："14:00–19:00"；无效 → "—" */
+export function formatWindowRangeFromEnd(
+  endIso: string | null | undefined,
+  durationHours: number
+): string {
+  const a = hhmmMinusHours(endIso, durationHours)
+  const b = hhmm(endIso)
+  if (!a || !b) return '—'
+  return `${a}–${b}`
+}
+
 /** 相对时间："刚刚" / "3分钟前" / "3小时前" / "2天前"；空值 "从未使用" */
 export function formatLastUsed(iso: string | null | undefined, now: Date): string {
   if (!iso) return '从未使用'

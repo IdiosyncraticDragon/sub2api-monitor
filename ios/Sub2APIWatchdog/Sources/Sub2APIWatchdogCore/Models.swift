@@ -33,12 +33,16 @@ public struct AccountGroup: Decodable, Equatable, Sendable {
 public struct AccountExtra: Decodable, Equatable, Sendable {
     public let sessionWindowUtilization: Double?
     public let passiveUsage7dUtilization: Double?
+    public let codex5hUsedPercent: Double?
+    public let codex7dUsedPercent: Double?
     public let passiveUsage7dReset: Double?
     public let passiveUsageSampledAt: String?
 
     enum CodingKeys: String, CodingKey {
         case sessionWindowUtilization = "session_window_utilization"
         case passiveUsage7dUtilization = "passive_usage_7d_utilization"
+        case codex5hUsedPercent = "codex_5h_used_percent"
+        case codex7dUsedPercent = "codex_7d_used_percent"
         case passiveUsage7dReset = "passive_usage_7d_reset"
         case passiveUsageSampledAt = "passive_usage_sampled_at"
     }

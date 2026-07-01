@@ -1,5 +1,5 @@
 import type { Account, ApiEnvelope, DashboardStats, PaginatedResponse } from '../../shared/types'
-import { unwrap, extractItems } from '../core/apiParse'
+import { unwrap, extractItems, ApiError } from '../core/apiParse'
 import { filterActive } from '../core/transform'
 
 /** HTTP 层错误（非 2xx）。401 用于触发重新登录/刷新。 */
@@ -38,7 +38,14 @@ export class ApiService {
       throw new HttpError(resp.status, `HTTP ${resp.status}`)
     }
     const envelope = (await resp.json()) as ApiEnvelope<T>
-    return unwrap(envelope)
+    try {
+      return unwrap(envelope)
+    } catch (err) {
+      if (err instanceof ApiError && err.code === 401) {
+        throw new HttpError(401, err.message)
+      }
+      throw err
+    }
   }
 
   /** 获取状态正常（active）的账户列表 */

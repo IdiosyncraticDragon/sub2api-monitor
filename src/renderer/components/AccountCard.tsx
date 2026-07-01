@@ -1,6 +1,6 @@
 import type { Account } from '../../shared/types'
-import { formatLastUsed, formatPercent, formatWindowRange } from '../../shared/format'
-import { sessionUtilization, weeklyUtilization } from '../../shared/usage'
+import { formatLastUsed, formatPercent } from '../../shared/format'
+import { sessionUtilization, sessionWindowRange, weeklyUtilization } from '../../shared/usage'
 import { utilizationLevel, levelColorVar } from '../../shared/theme'
 import { PlatformChip } from './PlatformIcon'
 import { StatusBadge } from './StatusBadge'
@@ -18,7 +18,7 @@ export function AccountCard({ account }: Props): JSX.Element {
   const sessionPct = formatPercent(sessionFrac)
   const barWidth = typeof sessionFrac === 'number' ? Math.min(100, Math.max(0, sessionFrac * 100)) : 0
 
-  const window = formatWindowRange(account.session_window_start, account.session_window_end)
+  const window = sessionWindowRange(account)
   const sessionLabel = window !== '—' ? `会话 · ${window}` : '会话 · 5h 窗口'
   const weekly = formatPercent(weeklyUtilization(account.extra))
   const isActive = account.status === 'active'

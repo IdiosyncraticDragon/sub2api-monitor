@@ -30,6 +30,29 @@ export function isJwtExpired(token: string, now: Date): boolean {
   return payload.exp - SKEW_SECONDS <= nowSec
 }
 
+function fieldLooksLikeRefresh(value: unknown): boolean {
+  return typeof value === 'string' && /refresh/i.test(value)
+}
+
+/** Heuristic guard: refresh tokens must not be accepted as API access tokens. */
+export function isLikelyRefreshToken(token: string, storageKey = ''): boolean {
+  if (/refresh/i.test(storageKey)) return true
+  const payload = decodeJwtPayload(token)
+  if (!payload) return false
+  return (
+    fieldLooksLikeRefresh(payload.typ) ||
+    fieldLooksLikeRefresh(payload.type) ||
+    fieldLooksLikeRefresh(payload.token_type) ||
+    fieldLooksLikeRefresh(payload.tokenType) ||
+    fieldLooksLikeRefresh(payload.token_use)
+  )
+}
+
+/** A token usable for API calls: access-like and not expired under the shared skew. */
+export function isUsableAccessToken(token: string, now: Date, storageKey = ''): boolean {
+  return !isLikelyRefreshToken(token, storageKey) && !isJwtExpired(token, now)
+}
+
 /** 规范化从 localStorage 读到的原始值为可用 token；无效返回 null */
 export function extractToken(raw: string | null | undefined): string | null {
   if (!raw) return null
@@ -44,6 +67,7 @@ export function extractToken(raw: string | null | undefined): string | null {
 // 站点改版后 JWT 不再固定存于 auth_token，需在 local/sessionStorage 全量扫描——
 // 值可能是裸 token，也可能嵌在 JSON 字符串里，正则可直接抠出。
 const JWT_RE = /eyJ[\w-]+\.[\w-]+\.[\w-]+/
+const JWT_GLOBAL_RE = /eyJ[\w-]+\.[\w-]+\.[\w-]+/g
 
 /** 一条存储项（localStorage / sessionStorage 的键值对快照） */
 export interface StorageEntry {
@@ -58,11 +82,27 @@ export function matchJwt(raw: string | null | undefined): string | null {
   return m ? m[0] : null
 }
 
+/** Return all JWT-looking values from one raw storage value, preserving their order. */
+export function matchJwts(raw: string | null | undefined): string[] {
+  if (!raw) return []
+  return raw.match(JWT_GLOBAL_RE) ?? []
+}
+
 /** 扫描所有存储项，返回首个匹配到的 JWT 作为 access token；无则 null */
 export function findAccessToken(entries: StorageEntry[]): string | null {
   for (const { value } of entries) {
     const jwt = matchJwt(value)
     if (jwt) return jwt
+  }
+  return null
+}
+
+/** Scan storage entries for the first valid access token; stale/refresh JWTs are ignored. */
+export function findUsableAccessToken(entries: StorageEntry[], now: Date): string | null {
+  for (const { key, value } of entries) {
+    for (const jwt of matchJwts(value)) {
+      if (isUsableAccessToken(jwt, now, key)) return jwt
+    }
   }
   return null
 }

@@ -5,6 +5,7 @@ import {
   formatCost,
   formatPercent,
   formatWindowRange,
+  formatWindowRangeFromEnd,
   formatLastUsed
 } from './format'
 
@@ -54,6 +55,21 @@ describe('formatWindowRange', () => {
   it('任一缺失返回占位', () => {
     expect(formatWindowRange(null, '2026-06-29T19:00:00+08:00')).toBe('—')
     expect(formatWindowRange('2026-06-29T14:00:00+08:00', undefined)).toBe('—')
+  })
+})
+
+describe('formatWindowRangeFromEnd', () => {
+  it('按结束时间反推固定小时窗口', () => {
+    expect(formatWindowRangeFromEnd('2026-06-29T19:00:00+08:00', 5)).toBe('14:00–19:00')
+  })
+
+  it('跨日时按墙上时钟回绕', () => {
+    expect(formatWindowRangeFromEnd('2026-06-29T02:30:00+08:00', 5)).toBe('21:30–02:30')
+  })
+
+  it('无效输入返回占位', () => {
+    expect(formatWindowRangeFromEnd(undefined, 5)).toBe('—')
+    expect(formatWindowRangeFromEnd('bad', 5)).toBe('—')
   })
 })
 

@@ -1,4 +1,6 @@
 import type { AccountExtra } from './types'
+import type { Account } from './types'
+import { formatWindowRange, formatWindowRangeFromEnd } from './format'
 
 // 跨平台用量访问器（纯函数）：把不同平台的用量字段统一归一化为 0..1 利用率。
 // - Anthropic：session_window_utilization / passive_usage_7d_utilization 本就是 0..1。
@@ -26,4 +28,11 @@ export function weeklyUtilization(extra: AccountExtra | undefined): number | und
   const codex = num(extra.codex_7d_used_percent)
   if (codex !== undefined) return codex / 100
   return undefined
+}
+
+/** 会话窗口时段展示；OpenAI/Codex 只有 reset_at 时按 5h 反推开始时间。 */
+export function sessionWindowRange(account: Account): string {
+  const explicit = formatWindowRange(account.session_window_start, account.session_window_end)
+  if (explicit !== '—') return explicit
+  return formatWindowRangeFromEnd(account.extra?.codex_5h_reset_at, 5)
 }

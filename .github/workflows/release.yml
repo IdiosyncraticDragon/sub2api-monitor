@@ -65,7 +65,7 @@ jobs:
         with:
           draft: false
           prerelease: false
-          body_path: release-notes/v0.1.0.md
+          body_path: release-notes/${{ github.ref_name }}.md
           files: |
             release-artifacts/**/*.exe
             release-artifacts/**/*.dmg

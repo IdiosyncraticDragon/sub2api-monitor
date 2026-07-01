@@ -4,7 +4,11 @@ import {
   extractToken,
   decodeJwtPayload,
   matchJwt,
+  matchJwts,
   findAccessToken,
+  findUsableAccessToken,
+  isLikelyRefreshToken,
+  isUsableAccessToken,
   findRefreshToken
 } from './jwt'
 
@@ -91,6 +95,11 @@ describe('matchJwt', () => {
     expect(matchJwt(null)).toBeNull()
     expect(matchJwt('')).toBeNull()
   })
+
+  it('matchJwts returns every JWT in order', () => {
+    const second = makeJwt({ sub: 'u2', exp: 456 })
+    expect(matchJwts(`{"first":"${jwt}","second":"${second}"}`)).toEqual([jwt, second])
+  })
 })
 
 describe('findAccessToken', () => {
@@ -108,6 +117,61 @@ describe('findAccessToken', () => {
   it('没有任何 JWT → null', () => {
     expect(findAccessToken([{ key: 'auth_user', value: '{"name":"alice"}' }])).toBeNull()
     expect(findAccessToken([])).toBeNull()
+  })
+})
+
+describe('access-token usability', () => {
+  const now = new Date('2026-06-28T12:00:00Z') // epoch 秒 1782648000
+  const validAccess = makeJwt({ sub: 'u1', exp: 1782648000 + 3600, typ: 'access' })
+  const expiredAccess = makeJwt({ sub: 'u1', exp: 1782648000 - 1, typ: 'access' })
+  const noExp = makeJwt({ sub: 'u1', typ: 'access' })
+  const refreshByPayload = makeJwt({ sub: 'u1', exp: 1782648000 + 3600, typ: 'refresh' })
+  const refreshByKey = makeJwt({ sub: 'u1', exp: 1782648000 + 3600 })
+
+  it('只接受未过期且不像 refresh 的 access token', () => {
+    expect(isUsableAccessToken(validAccess, now)).toBe(true)
+    expect(isUsableAccessToken(expiredAccess, now)).toBe(false)
+    expect(isUsableAccessToken(noExp, now)).toBe(false)
+    expect(isUsableAccessToken(refreshByPayload, now)).toBe(false)
+    expect(isUsableAccessToken(refreshByKey, now, 'refresh_token')).toBe(false)
+  })
+
+  it('根据 payload 或存储键名识别 refresh token', () => {
+    expect(isLikelyRefreshToken(refreshByPayload)).toBe(true)
+    expect(isLikelyRefreshToken(validAccess)).toBe(false)
+    expect(isLikelyRefreshToken(refreshByKey, 'auth.refreshToken')).toBe(true)
+  })
+
+  it('扫描存储时跳过过期、无 exp、refresh token，返回第一个可用 access token', () => {
+    const entries = [
+      { key: 'expired_session', value: expiredAccess },
+      { key: 'legacy_token', value: noExp },
+      { key: 'refresh_token', value: refreshByKey },
+      { key: 'session', value: `{"access_token":"${validAccess}"}` }
+    ]
+    expect(findUsableAccessToken(entries, now)).toBe(validAccess)
+  })
+
+  it('finds access token after a refresh token in the same storage value', () => {
+    const entries = [
+      {
+        key: 'auth_session',
+        value: `{"refresh_token":"${refreshByPayload}","access_token":"${validAccess}"}`
+      }
+    ]
+    expect(findUsableAccessToken(entries, now)).toBe(validAccess)
+  })
+
+  it('没有可用 access token 时返回 null', () => {
+    expect(
+      findUsableAccessToken(
+        [
+          { key: 'expired_session', value: expiredAccess },
+          { key: 'refresh_token', value: refreshByPayload }
+        ],
+        now
+      )
+    ).toBeNull()
   })
 })
 

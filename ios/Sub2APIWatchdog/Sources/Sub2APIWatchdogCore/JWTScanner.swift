@@ -28,7 +28,12 @@ public enum JWTScanner {
     }
 
     public static func findAccessToken(in entries: [StorageEntry]) -> String? {
-        for entry in entries {
+        let preferredEntries = entries.filter { entry in
+            let key = entry.key.lowercased()
+            return !key.contains("refresh")
+                && (key.contains("access") || key.contains("auth") || key.contains("token") || key.contains("jwt"))
+        }
+        for entry in preferredEntries + entries.filter({ !preferredEntries.contains($0) }) {
             if let token = matchJWT(in: entry.value) {
                 return token
             }

@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import WidgetKit
 #if SWIFT_PACKAGE
 import Sub2APIWatchdogCore
 #endif
@@ -7,16 +8,17 @@ import Sub2APIWatchdogCore
 @MainActor
 final class WatchdogViewModel: ObservableObject {
     @AppStorage("serverOrigin") var serverOrigin = ""
-    @Published var tokenInput = ""
     @Published var sections: [AccountSection] = []
     @Published var dashboard: DashboardStats?
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var lastRefreshedAt: Date?
+    @Published private(set) var isAuthenticated = false
 
     private let credentials: CredentialStoring
     private let loader: WatchdogDataLoading
     private let now: @MainActor () -> Date
+    private var token: String?
 
     init(
         credentials: CredentialStoring = KeychainCredentialStore(),
@@ -27,9 +29,11 @@ final class WatchdogViewModel: ObservableObject {
         self.credentials = credentials
         self.loader = loader
         self.now = now
-        self.tokenInput = credentials.loadToken() ?? ""
+        self.token = credentials.loadToken()
+        self.isAuthenticated = self.token?.isEmpty == false
         if ProcessInfo.processInfo.arguments.contains("--ui-testing-reset") {
-            self.tokenInput = ""
+            self.token = nil
+            self.isAuthenticated = false
             self.serverOrigin = ""
             try? credentials.clearToken()
         }
@@ -39,33 +43,37 @@ final class WatchdogViewModel: ObservableObject {
     }
 
     var isConfigured: Bool {
-        ServerConfig.normalizeOrigin(serverOrigin) != nil && !tokenInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        ServerConfig.normalizeOrigin(serverOrigin) != nil && isAuthenticated
     }
 
     var loginURL: URL? {
         ServerConfig.normalizeOrigin(serverOrigin).map(ServerConfig.loginURL(from:))
     }
 
-    func acceptToken(_ token: String) {
-        tokenInput = token
-        saveToken()
-    }
-
-    func saveToken() {
+    @discardableResult
+    func acceptToken(_ token: String) -> Bool {
+        let normalized = token.trimmingCharacters(in: .whitespacesAndNewlines)
         do {
-            try credentials.saveToken(tokenInput.trimmingCharacters(in: .whitespacesAndNewlines))
+            try credentials.saveToken(normalized)
+            self.token = normalized
+            self.isAuthenticated = !normalized.isEmpty
             errorMessage = nil
+            return isAuthenticated
         } catch {
-            errorMessage = "Could not save token to Keychain."
+            errorMessage = "Could not save login session: \(error.localizedDescription)"
+            return false
         }
     }
 
     func clearToken() {
         do {
             try credentials.clearToken()
-            tokenInput = ""
+            token = nil
+            isAuthenticated = false
             sections = []
             dashboard = nil
+            WidgetSnapshotStore.clear()
+            WidgetCenter.shared.reloadTimelines(ofKind: WidgetSnapshotConfig.widgetKind)
             lastRefreshedAt = nil
             errorMessage = nil
         } catch {
@@ -78,13 +86,12 @@ final class WatchdogViewModel: ObservableObject {
             errorMessage = "Enter a valid Sub2API server URL."
             return
         }
-        let token = tokenInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !token.isEmpty else {
-            errorMessage = "Paste an admin Bearer token."
+        guard let token, !token.isEmpty else {
+            isAuthenticated = false
+            errorMessage = "Sign in with Web Login first."
             return
         }
 
-        saveToken()
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
@@ -94,8 +101,15 @@ final class WatchdogViewModel: ObservableObject {
             sections = AccountTransform.groupByGroup(snapshot.accounts)
             dashboard = snapshot.dashboard
             lastRefreshedAt = now()
+            WidgetSnapshotStore.save(WidgetSnapshotStore.makeSnapshot(from: snapshot, updatedAt: lastRefreshedAt ?? now()))
+            WidgetCenter.shared.reloadTimelines(ofKind: WidgetSnapshotConfig.widgetKind)
         } catch WatchdogAPIError.httpStatus(401) {
             errorMessage = "Token expired or unauthorized."
+            self.token = nil
+            self.isAuthenticated = false
+            try? credentials.clearToken()
+            WidgetSnapshotStore.clear()
+            WidgetCenter.shared.reloadTimelines(ofKind: WidgetSnapshotConfig.widgetKind)
         } catch {
             errorMessage = "Refresh failed: \(error.localizedDescription)"
         }

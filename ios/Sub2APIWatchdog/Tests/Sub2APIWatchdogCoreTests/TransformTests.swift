@@ -28,7 +28,7 @@ final class TransformTests: XCTestCase {
     }
 }
 
-func sampleAccount(id: Int, status: String = "active", group: String? = "Default") -> Account {
+func sampleAccount(id: Int, status: String = "active", group: String? = "Default", session: Double? = nil) -> Account {
     let groups = group.map { [AccountGroup(id: 10, name: $0, platform: nil, subscriptionType: nil)] }
     return Account(
         id: id,
@@ -38,7 +38,16 @@ func sampleAccount(id: Int, status: String = "active", group: String? = "Default
         type: "oauth",
         notes: nil,
         lastUsedAt: nil,
-        extra: nil,
+        extra: session.map {
+            AccountExtra(
+                sessionWindowUtilization: $0,
+                passiveUsage7dUtilization: nil,
+                codex5hUsedPercent: nil,
+                codex7dUsedPercent: nil,
+                passiveUsage7dReset: nil,
+                passiveUsageSampledAt: nil
+            )
+        },
         sessionWindowStart: nil,
         sessionWindowEnd: nil,
         sessionWindowStatus: nil,

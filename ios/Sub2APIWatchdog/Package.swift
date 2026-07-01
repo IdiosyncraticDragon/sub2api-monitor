@@ -20,6 +20,7 @@ let package = Package(
         .executableTarget(
             name: "Sub2APIWatchdogApp",
             dependencies: ["Sub2APIWatchdogCore"],
+            exclude: ["Sub2APIWatchdog.entitlements"],
             resources: [.process("Resources")]
         ),
         .testTarget(

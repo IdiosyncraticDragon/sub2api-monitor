@@ -97,6 +97,13 @@ describe('ApiService.getActiveAccounts', () => {
     await expect(svc.getActiveAccounts()).rejects.toBeInstanceOf(ApiError)
   })
 
+  it('business code 401 throws HttpError(status=401)', async () => {
+    const fetchFn = vi.fn(async () => jsonResponse({ code: 401, message: 'unauthorized', data: null }))
+    const svc = makeService({ fetchImpl: fetchFn, token: 'expired' })
+    await expect(svc.getActiveAccounts()).rejects.toMatchObject({ status: 401 })
+    await expect(svc.getActiveAccounts()).rejects.toBeInstanceOf(HttpError)
+  })
+
   it('HTTP 401 抛 HttpError(status=401)', async () => {
     const fetchFn = vi.fn(async () => jsonResponse({ message: 'unauthorized' }, { ok: false, status: 401 }))
     const svc = makeService({ fetchImpl: fetchFn, token: 'expired' })
@@ -122,6 +129,12 @@ describe('ApiService.getDashboardStats', () => {
 
   it('HTTP 401 抛 HttpError', async () => {
     const fetchFn = vi.fn(async () => jsonResponse({}, { ok: false, status: 401 }))
+    const svc = makeService({ fetchImpl: fetchFn, token: 'expired' })
+    await expect(svc.getDashboardStats()).rejects.toBeInstanceOf(HttpError)
+  })
+
+  it('business code 401 throws HttpError', async () => {
+    const fetchFn = vi.fn(async () => jsonResponse({ code: 401, message: 'unauthorized', data: null }))
     const svc = makeService({ fetchImpl: fetchFn, token: 'expired' })
     await expect(svc.getDashboardStats()).rejects.toBeInstanceOf(HttpError)
   })

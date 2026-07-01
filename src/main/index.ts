@@ -10,8 +10,8 @@ import { openSetupWindow } from './windows/setup'
 import { createTray, setTrayUsage } from './tray'
 import { groupByGroup, latestActiveAccount } from './core/transform'
 import { apiBaseFrom, loginUrlFrom, normalizeOrigin } from './core/config'
-import { formatLastUsed, formatPercent, formatWindowRange } from '../shared/format'
-import { sessionUtilization } from '../shared/usage'
+import { formatLastUsed, formatPercent } from '../shared/format'
+import { sessionUtilization, sessionWindowRange } from '../shared/usage'
 import type { Account, DashboardStats, DashboardSummary, GroupView } from '../shared/types'
 
 const POLL_INTERVAL_MS = 30_000
@@ -37,6 +37,7 @@ const api = new ApiService({
 })
 
 let floatWindow: BrowserWindow | null = null
+let loginWindow: BrowserWindow | null = null
 let tray: Tray | null = null
 let isQuitting = false
 let isCollapsed = credentialStore.getCollapsed()
@@ -62,7 +63,7 @@ const toSummary = (s: DashboardStats): DashboardSummary => ({
 const trayUsageFromAccount = (a: Account | null): { title: string; tooltip: string } => {
   if (!a) return { title: '', tooltip: 'Sub2API Monitor' }
   const pct = formatPercent(sessionUtilization(a.extra))
-  const range = formatWindowRange(a.session_window_start, a.session_window_end)
+  const range = sessionWindowRange(a)
   const group = a.groups?.[0]?.name
   const last = formatLastUsed(a.last_used_at, new Date())
   const tooltip =
@@ -101,9 +102,10 @@ const poll = new PollService<Snapshot>({
   onError: (err) => {
     // 401：凭证失效，清除并重新登录
     if (err instanceof HttpError && err.status === 401) {
-      auth.clear()
       poll.stop()
-      showLogin()
+      auth.clear()
+      clearSnapshotCache()
+      showLogin({ clearStaleCredentials: true })
     }
   }
 })
@@ -203,18 +205,35 @@ function showSetup(): void {
   })
 }
 
-function showLogin(): void {
+function showLogin(options: { clearStaleCredentials?: boolean } = {}): void {
   const origin = resolveOrigin()
   if (!origin) {
     showSetup()
     return
   }
 
-  openLoginWindow(loginUrlFrom(origin), (result) => {
+  if (loginWindow && !loginWindow.isDestroyed()) {
+    if (options.clearStaleCredentials) {
+      loginWindow.close()
+      loginWindow = null
+    } else {
+      if (loginWindow.isMinimized()) loginWindow.restore()
+      loginWindow.show()
+      loginWindow.focus()
+      return
+    }
+  }
+
+  const win = openLoginWindow(loginUrlFrom(origin), (result) => {
     auth.setTokens(result.token, result.refreshToken ?? undefined)
+    if (loginWindow === win) loginWindow = null
     if (!floatWindow || floatWindow.isDestroyed()) createFloatWindow()
     else floatWindow.show()
     poll.start() // 登录成功后开始轮询
+  }, options)
+  loginWindow = win
+  win.on('closed', () => {
+    if (loginWindow === win) loginWindow = null
   })
 }
 
@@ -281,7 +300,7 @@ function boot(): void {
   setupTray()
   if (!resolveOrigin()) showSetup()
   else if (auth.isAuthenticated()) startPolling()
-  else showLogin()
+  else showLogin({ clearStaleCredentials: !!auth.getToken() })
 }
 
 // ---- IPC ----

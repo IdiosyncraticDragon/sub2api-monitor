@@ -20,4 +20,15 @@ final class JWTScannerTests: XCTestCase {
         XCTAssertEqual(JWTScanner.findAccessToken(in: entries), access)
         XCTAssertEqual(JWTScanner.findRefreshToken(in: entries), refresh)
     }
+
+    func testPrefersAccessTokenOverRefreshToken() {
+        let refresh = "eyJrefresh.header.signature"
+        let access = "eyJaccess.header.signature"
+        let entries = [
+            StorageEntry(key: "refresh_token", value: refresh),
+            StorageEntry(key: "access_token", value: access)
+        ]
+
+        XCTAssertEqual(JWTScanner.findAccessToken(in: entries), access)
+    }
 }

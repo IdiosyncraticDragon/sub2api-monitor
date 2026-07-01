@@ -5,7 +5,7 @@
 一次登录，长期免登录；暖色圆润界面，三套主题、明暗可切；可折叠成迷你条挂在屏幕角落。
 
 > **平台状态**：Windows = v1.0 交付目标 ✅ ｜ macOS = 已支持（构建/接力见
-> [docs/HANDOVER-macOS.md](docs/HANDOVER-macOS.md)）｜ iOS 伴侣 App = 远期规划。
+> [docs/HANDOVER-macOS.md](docs/HANDOVER-macOS.md)）｜ iOS 伴侣 App = 可手工验收使用。
 
 ---
 
@@ -18,9 +18,10 @@
 5. [折叠模式](#5-折叠模式)
 6. [系统托盘](#6-系统托盘)
 7. [更换服务器 / 重新登录](#7-更换服务器--重新登录)
-8. [隐私与安全](#8-隐私与安全)
-9. [常见问题（FAQ）](#9-常见问题faq)
-10. [从源码运行 / 参与开发](#10-从源码运行--参与开发)
+8. [iOS 伴侣 App](#8-ios-伴侣-app)
+9. [隐私与安全](#9-隐私与安全)
+10. [常见问题（FAQ）](#10-常见问题faq)
+11. [从源码运行 / 参与开发](#11-从源码运行--参与开发)
 
 ---
 
@@ -183,16 +184,65 @@
 
 ---
 
-## 8. 隐私与安全
+## 8. iOS 伴侣 App
+
+iOS 端是原生 SwiftUI 伴侣 App，用来在手机或模拟器上查看同一套 Sub2API active 账户、今日汇总和用量窗口。它沿用桌面端默认的 Clay 悬浮窗主题，并提供一个 WidgetKit 小组件预览 active 账户会话用量。
+
+### 安装 / 运行
+
+目前 iOS 端从源码运行：
+
+```bash
+cd ios/Sub2APIWatchdog
+open Sub2APIWatchdog.xcodeproj
+```
+
+在 Xcode 中选择 iOS Simulator 或真机，运行 `Sub2APIWatchdog` scheme。
+
+命令行验证：
+
+```bash
+cd ios/Sub2APIWatchdog
+swift test
+xcodebuild -project Sub2APIWatchdog.xcodeproj -scheme Sub2APIWatchdog -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' build
+```
+
+> 不要用 `CODE_SIGNING_ALLOWED=NO` 的包做登录验收；iOS Keychain 需要正常本地签名，否则可能出现 `Keychain OSStatus -34018`。
+
+### 首次登录
+
+1. 打开 App，在顶部输入 Sub2API 后台 origin，例如 `https://your-sub2api.example.com`。
+2. 点 **Web Login**，在弹出的网页里按正常后台流程输入账号密码。
+3. 登录成功后，App 会自动扫描网页登录态里的 JWT，保存到 iOS Keychain，并关闭登录页。
+4. 回到主界面后会自动刷新，展示 Today 汇总和 active 账户分组。
+
+iOS 端不再提供“直接粘贴 token”的入口；token 获取、保存和刷新由 App 自动完成。
+
+### 主界面
+
+- **Connection**：服务器地址、网页登录入口、清除登录态。
+- **Today**：今日 token、请求数、花费和正常账户数。
+- **账户卡片**：按 `groups[0].name` 分组展示 active 账户，包含平台、状态、5 小时会话用量、7 日用量、最近使用和会话窗口。
+- **刷新**：右上角刷新按钮会重新拉取 `/admin/accounts` 与 `/admin/dashboard/stats`。
+
+### 桌面小组件
+
+iOS 小组件使用 macOS 折叠态的视觉主题：浅色 Clay 背景、进度环/分段展示和相同的低/中/高用量颜色。App 每次刷新成功后会把轻量快照写入 App Group，并请求 WidgetKit 重载；小组件会显示最近一次成功刷新的 active 账户和 Today 摘要。实际刷新时机仍受 iOS 小组件调度限制。
+
+更多 iOS 开发说明见 [ios/Sub2APIWatchdog/README.md](ios/Sub2APIWatchdog/README.md)。
+
+---
+
+## 9. 隐私与安全
 
 - **凭证只存在你本机**：登录凭证经操作系统安全存储**加密落盘**
-  （Windows = DPAPI，macOS = 钥匙串 Keychain，Linux = libsecret），不是明文。
+  （Windows = DPAPI，macOS = 钥匙串 Keychain，Linux = libsecret，iOS = Keychain），不是明文。
 - **不上传任何数据**：应用只与你**自己配置的** Sub2API 后台通信，不向任何第三方发送数据。
 - 服务器地址等非敏感配置以明文存于本地配置文件。
 
 ---
 
-## 9. 常见问题（FAQ）
+## 10. 常见问题（FAQ）
 
 **Q：悬浮窗显示「暂无正常账户」或一直「加载中」？**
 A：先点 ⟳ 刷新。若仍为空，确认后台确有 active 账户、服务器地址正确、网络可达；
@@ -213,9 +263,12 @@ A：应用未签名公证。右键应用 →「打开」，或系统设置→隐
 **Q：主题/外观改了下次还在吗？**
 A：在。所有外观设置都会自动保存，下次启动沿用。
 
+**Q：iOS Web Login 成功后提示 `Keychain OSStatus -34018`？**
+A：这是模拟器/本地包缺少 Keychain entitlement。请用 Xcode 正常 Run，或用不带 `CODE_SIGNING_ALLOWED=NO` 的 `xcodebuild ... build` 构建后安装。
+
 ---
 
-## 10. 从源码运行 / 参与开发
+## 11. 从源码运行 / 参与开发
 
 需要 Node.js 18+。
 

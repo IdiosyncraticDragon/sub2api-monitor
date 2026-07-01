@@ -10,11 +10,9 @@ final class Sub2APIWatchdogUITests: XCTestCase {
         app.launchArguments = ["--ui-testing-reset"]
         app.launch()
 
-        XCTAssertTrue(app.navigationBars["Sub2API Watchdog"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Sub2API"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.textFields["server-origin-field"].exists)
-        XCTAssertTrue(app.secureTextFields["bearer-token-field"].exists)
         XCTAssertTrue(app.buttons["web-login-button"].exists)
-        XCTAssertTrue(app.buttons["save-token-button"].exists)
         XCTAssertTrue(app.buttons["clear-token-button"].exists)
     }
 

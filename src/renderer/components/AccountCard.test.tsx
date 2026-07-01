@@ -28,6 +28,22 @@ describe('AccountCard', () => {
     expect(screen.getByText(/14:00–19:00/)).toBeInTheDocument()
   })
 
+  it('OpenAI activate 账户用 codex_5h_reset_at 推导 5h 窗口时段', () => {
+    render(
+      <AccountCard
+        account={{
+          ...base,
+          platform: 'openai',
+          extra: { codex_5h_used_percent: 42, codex_5h_reset_at: '2026-06-29T19:00:00+08:00' },
+          session_window_start: null,
+          session_window_end: null
+        }}
+      />
+    )
+    expect(screen.getByText('42%')).toBeInTheDocument()
+    expect(screen.getByText(/14:00–19:00/)).toBeInTheDocument()
+  })
+
   it('展示 7 日利用率（次要信息）', () => {
     render(<AccountCard account={base} />)
     expect(screen.getByText('7日 11%')).toBeInTheDocument()

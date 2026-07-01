@@ -42,6 +42,33 @@ public enum WatchdogFormat {
         return "\(hours / 24)d ago"
     }
 
+    public static func sessionUtilization(_ extra: AccountExtra?) -> Double? {
+        guard let extra else { return nil }
+        if let value = extra.sessionWindowUtilization {
+            return value
+        }
+        if let value = extra.codex5hUsedPercent {
+            return value / 100
+        }
+        return nil
+    }
+
+    public static func weeklyUtilization(_ extra: AccountExtra?) -> Double? {
+        guard let extra else { return nil }
+        if let value = extra.passiveUsage7dUtilization {
+            return value
+        }
+        if let value = extra.codex7dUsedPercent {
+            return value / 100
+        }
+        return nil
+    }
+
+    public static func clampedPercentValue(_ value: Double?) -> Double {
+        guard let value, !value.isNaN else { return 0 }
+        return min(1, max(0, value))
+    }
+
     private static func parseDate(_ raw: String?) -> Date? {
         guard let raw, !raw.isEmpty else { return nil }
         let fractional = ISO8601DateFormatter()

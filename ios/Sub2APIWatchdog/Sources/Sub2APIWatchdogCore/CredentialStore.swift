@@ -54,6 +54,10 @@ public final class KeychainCredentialStore: CredentialStoring, @unchecked Sendab
     }
 }
 
-public struct KeychainError: Error, Equatable {
+public struct KeychainError: LocalizedError, Equatable {
     public let status: OSStatus
+
+    public var errorDescription: String? {
+        "Keychain OSStatus \(status)"
+    }
 }
