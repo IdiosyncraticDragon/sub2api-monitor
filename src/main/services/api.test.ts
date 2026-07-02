@@ -91,6 +91,92 @@ describe('ApiService.getActiveAccounts', () => {
     expect(result.map((a) => a.id)).toEqual([1])
   })
 
+  it('OpenAI 账号会强制刷新 active/passive usage 并覆盖列表里的旧 codex 用量', async () => {
+    const items = [
+      account({
+        id: 7,
+        platform: 'openai',
+        extra: { codex_5h_used_percent: 61, codex_7d_used_percent: 33 }
+      })
+    ]
+    const fetchFn = vi.fn(async (urlLike: string | URL | Request) => {
+      const url = new URL(urlLike as string)
+      if (url.pathname.endsWith('/admin/accounts')) {
+        return jsonResponse({ code: 0, message: 'ok', data: { items, total: 1 } })
+      }
+      if (url.pathname.endsWith('/admin/accounts/7/usage') && url.searchParams.get('source') === 'active') {
+        expect(url.searchParams.get('force')).toBe('true')
+        return jsonResponse({
+          code: 0,
+          message: 'ok',
+          data: { codex_5h_used_percent: 0, codex_5h_reset_at: '2026-07-02T10:00:00+08:00' }
+        })
+      }
+      if (url.pathname.endsWith('/admin/accounts/7/usage') && url.searchParams.get('source') === 'passive') {
+        expect(url.searchParams.get('force')).toBe('true')
+        return jsonResponse({
+          code: 0,
+          message: 'ok',
+          data: { usage: { used_percent: 18, reset_at: '2026-07-09T10:00:00+08:00' } }
+        })
+      }
+      throw new Error(`unexpected URL ${url.toString()}`)
+    })
+    const svc = makeService({ fetchImpl: fetchFn, token: 't' })
+
+    const result = await svc.getActiveAccounts()
+
+    expect(result[0].extra).toMatchObject({
+      codex_5h_used_percent: 0,
+      codex_5h_reset_at: '2026-07-02T10:00:00+08:00',
+      codex_7d_used_percent: 18,
+      codex_7d_reset_at: '2026-07-09T10:00:00+08:00'
+    })
+    expect(fetchFn).toHaveBeenCalledTimes(3)
+  })
+
+  it('OpenAI usage 刷新非 401 失败时保留账户列表数据', async () => {
+    const items = [account({ id: 8, platform: 'openai', extra: { codex_5h_used_percent: 61 } })]
+    const fetchFn = vi.fn(async (urlLike: string | URL | Request) => {
+      const url = new URL(urlLike as string)
+      if (url.pathname.endsWith('/admin/accounts')) {
+        return jsonResponse({ code: 0, message: 'ok', data: { items, total: 1 } })
+      }
+      return jsonResponse({ message: 'boom' }, { ok: false, status: 500 })
+    })
+    const svc = makeService({ fetchImpl: fetchFn, token: 't' })
+
+    const result = await svc.getActiveAccounts()
+
+    expect(result[0].extra?.codex_5h_used_percent).toBe(61)
+  })
+
+  it('OpenAI active usage 成功但无 5h 字段时清掉列表里的旧 5h 用量', async () => {
+    const items = [
+      account({
+        id: 9,
+        platform: 'openai',
+        extra: { codex_5h_used_percent: 61, codex_7d_used_percent: 33 }
+      })
+    ]
+    const fetchFn = vi.fn(async (urlLike: string | URL | Request) => {
+      const url = new URL(urlLike as string)
+      if (url.pathname.endsWith('/admin/accounts')) {
+        return jsonResponse({ code: 0, message: 'ok', data: { items, total: 1 } })
+      }
+      if (url.searchParams.get('source') === 'active') {
+        return jsonResponse({ code: 0, message: 'ok', data: { available: false } })
+      }
+      return jsonResponse({ code: 0, message: 'ok', data: { used_percent: 18 } })
+    })
+    const svc = makeService({ fetchImpl: fetchFn, token: 't' })
+
+    const result = await svc.getActiveAccounts()
+
+    expect(result[0].extra?.codex_5h_used_percent).toBeUndefined()
+    expect(result[0].extra?.codex_7d_used_percent).toBe(18)
+  })
+
   it('业务错误码（code!==0）抛 ApiError', async () => {
     const fetchFn = vi.fn(async () => jsonResponse({ code: 500, message: '服务异常', data: null }))
     const svc = makeService({ fetchImpl: fetchFn, token: 't' })

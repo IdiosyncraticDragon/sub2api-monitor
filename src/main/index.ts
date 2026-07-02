@@ -11,7 +11,7 @@ import { createTray, setTrayUsage } from './tray'
 import { groupByGroup, latestActiveAccount } from './core/transform'
 import { apiBaseFrom, loginUrlFrom, normalizeOrigin } from './core/config'
 import { formatLastUsed, formatPercent } from '../shared/format'
-import { sessionUtilization, sessionWindowRange } from '../shared/usage'
+import { primaryUsage, sessionWindowRange } from '../shared/usage'
 import type { Account, DashboardStats, DashboardSummary, GroupView } from '../shared/types'
 
 const POLL_INTERVAL_MS = 30_000
@@ -62,13 +62,15 @@ const toSummary = (s: DashboardStats): DashboardSummary => ({
 // 由最近使用账户生成托盘显示：菜单栏显会话利用率%，tooltip 显账户/会话/时段/最近使用。
 const trayUsageFromAccount = (a: Account | null): { title: string; tooltip: string } => {
   if (!a) return { title: '', tooltip: 'Sub2API Monitor' }
-  const pct = formatPercent(sessionUtilization(a.extra))
+  const usage = primaryUsage(a)
+  const pct = formatPercent(usage.frac)
   const range = sessionWindowRange(a)
   const group = a.groups?.[0]?.name
   const last = formatLastUsed(a.last_used_at, new Date())
+  const label = usage.kind === 'weekly' ? '7日' : '会话'
   const tooltip =
     `${group ? group + ' · ' : ''}${a.name}\n` +
-    `会话 ${pct}${range !== '—' ? ` (${range})` : ''}\n` +
+    `${label} ${pct}${usage.kind === 'session' && range !== '—' ? ` (${range})` : ''}\n` +
     `最近 ${last}`
   return { title: pct === '—' ? '' : pct, tooltip }
 }

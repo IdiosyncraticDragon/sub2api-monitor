@@ -34,6 +34,7 @@ describe('AccountCard', () => {
         account={{
           ...base,
           platform: 'openai',
+          type: 'oauth',
           extra: { codex_5h_used_percent: 42, codex_5h_reset_at: '2026-06-29T19:00:00+08:00' },
           session_window_start: null,
           session_window_end: null
@@ -42,6 +43,21 @@ describe('AccountCard', () => {
     )
     expect(screen.getByText('42%')).toBeInTheDocument()
     expect(screen.getByText(/14:00–19:00/)).toBeInTheDocument()
+  })
+
+  it('OpenAI 账号不区分 free/plus，统一展示 5h 与 7 日额度', () => {
+    render(
+      <AccountCard
+        account={{
+          ...base,
+          platform: 'openai',
+          type: 'openai_free',
+          extra: { codex_5h_used_percent: 61, codex_7d_used_percent: 18 }
+        }}
+      />
+    )
+    expect(screen.getByText('61%')).toBeInTheDocument()
+    expect(screen.getByText('7日 18%')).toBeInTheDocument()
   })
 
   it('展示 7 日利用率（次要信息）', () => {

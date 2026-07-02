@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { sessionUtilization, weeklyUtilization, sessionWindowRange } from './usage'
+import {
+  primaryUsage,
+  sessionUtilization,
+  weeklyUtilization,
+  sessionWindowRange
+} from './usage'
 import type { Account } from './types'
 
 const acc = (over: Partial<Account>): Account => ({
@@ -24,6 +29,30 @@ describe('sessionUtilization', () => {
     ).toBeCloseTo(0.5)
   })
 
+  it('OpenAI 账号按平台只取 codex_5h，忽略误带的 Anthropic 字段', () => {
+    expect(
+      sessionUtilization(
+        acc({
+          platform: 'openai',
+          type: 'oauth',
+          extra: { session_window_utilization: 0.61, codex_5h_used_percent: 0 }
+        })
+      )
+    ).toBeCloseTo(0)
+  })
+
+  it('OpenAI 账号不再区分 free/plus，统一展示 codex_5h', () => {
+    expect(
+      sessionUtilization(
+        acc({
+          platform: 'openai',
+          type: 'oauth',
+          extra: { codex_5h_used_percent: 61, codex_7d_used_percent: 18 }
+        })
+      )
+    ).toBeCloseTo(0.61)
+  })
+
   it('无字段 / undefined → undefined', () => {
     expect(sessionUtilization(undefined)).toBeUndefined()
     expect(sessionUtilization({})).toBeUndefined()
@@ -39,9 +68,55 @@ describe('weeklyUtilization', () => {
     expect(weeklyUtilization({ codex_7d_used_percent: 22 })).toBeCloseTo(0.22)
   })
 
+  it('OpenAI 账号按平台只取 codex_7d，忽略误带的 Anthropic 字段', () => {
+    expect(
+      weeklyUtilization(
+        acc({
+          platform: 'openai',
+          extra: { passive_usage_7d_utilization: 0.88, codex_7d_used_percent: 12 }
+        })
+      )
+    ).toBeCloseTo(0.12)
+  })
+
   it('无字段 → undefined', () => {
     expect(weeklyUtilization(undefined)).toBeUndefined()
     expect(weeklyUtilization({})).toBeUndefined()
+  })
+})
+
+describe('primaryUsage', () => {
+  it('OpenAI 不区分 free/plus，主额度统一使用 5h', () => {
+    expect(
+      primaryUsage(
+        acc({
+          platform: 'openai',
+          type: 'oauth',
+          extra: { codex_5h_used_percent: 61, codex_7d_used_percent: 18 }
+        })
+      )
+    ).toEqual({ kind: 'session', frac: 0.61 })
+
+    expect(
+      primaryUsage(
+        acc({
+          platform: 'openai',
+          type: 'oauth',
+          extra: { codex_5h_used_percent: 0, codex_7d_used_percent: 18 }
+        })
+      )
+    ).toEqual({ kind: 'session', frac: 0 })
+  })
+
+  it('OpenAI 只有 7d 可用时主额度仍保持会话占位', () => {
+    expect(
+      primaryUsage(
+        acc({
+          platform: 'openai',
+          extra: { codex_5h_used_percent: undefined, codex_7d_used_percent: 18 }
+        })
+      )
+    ).toEqual({ kind: 'session', frac: undefined })
   })
 })
 
@@ -72,4 +147,5 @@ describe('sessionWindowRange', () => {
   it('无窗口字段返回占位', () => {
     expect(sessionWindowRange(acc({ platform: 'openai', extra: {} }))).toBe('—')
   })
+
 })

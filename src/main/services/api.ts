@@ -1,4 +1,6 @@
 import type { Account, ApiEnvelope, DashboardStats, PaginatedResponse } from '../../shared/types'
+import type { AccountExtra } from '../../shared/types'
+import { isOpenAiAccount } from '../../shared/usage'
 import { unwrap, extractItems, ApiError } from '../core/apiParse'
 import { filterActive } from '../core/transform'
 
@@ -17,6 +19,75 @@ export interface ApiDeps {
   baseUrl: () => string
   fetchFn: typeof fetch
   getToken: () => string | null
+}
+
+type UsageSource = 'active' | 'passive'
+
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  !!v && typeof v === 'object' && !Array.isArray(v)
+
+const num = (v: unknown): number | undefined =>
+  typeof v === 'number' && !Number.isNaN(v) ? v : undefined
+
+const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined)
+
+function findNumber(obj: Record<string, unknown>, keys: string[]): number | undefined {
+  for (const key of keys) {
+    const value = num(obj[key])
+    if (value !== undefined) return value
+  }
+  for (const value of Object.values(obj)) {
+    if (isRecord(value)) {
+      const found = findNumber(value, keys)
+      if (found !== undefined) return found
+    }
+  }
+  return undefined
+}
+
+function findString(obj: Record<string, unknown>, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = str(obj[key])
+    if (value !== undefined) return value
+  }
+  for (const value of Object.values(obj)) {
+    if (isRecord(value)) {
+      const found = findString(value, keys)
+      if (found !== undefined) return found
+    }
+  }
+  return undefined
+}
+
+function usageToExtra(payload: unknown, source: UsageSource): AccountExtra {
+  const root = isRecord(payload) ? payload : {}
+  if (source === 'active') {
+    const pct = findNumber(root, [
+      'codex_5h_used_percent',
+      'used_percent',
+      'usage_percent',
+      'utilization_percent',
+      'percent'
+    ])
+    const reset = findString(root, ['codex_5h_reset_at', 'reset_at', 'resets_at', 'reset_time'])
+    return {
+      codex_5h_used_percent: pct,
+      codex_5h_reset_at: reset
+    }
+  }
+
+  const pct = findNumber(root, [
+    'codex_7d_used_percent',
+    'used_percent',
+    'usage_percent',
+    'utilization_percent',
+    'percent'
+  ])
+  const reset = findString(root, ['codex_7d_reset_at', 'reset_at', 'resets_at', 'reset_time'])
+  return {
+    codex_7d_used_percent: pct,
+    codex_7d_reset_at: reset
+  }
 }
 
 // 与后台交互的 HTTP 服务。依赖注入 fetch 与 token provider，便于单测。
@@ -50,13 +121,48 @@ export class ApiService {
 
   /** 获取状态正常（active）的账户列表 */
   async getActiveAccounts(): Promise<Account[]> {
-    const data = await this.getJson<PaginatedResponse<Account> | Account[]>('/admin/accounts', {
+    const data = await this.getAccountsPage({
       status: 'active',
       page: '1',
       page_size: '100'
     })
     // 防御性再过滤：即使后端忽略 status 过滤也只保留 active
-    return filterActive(extractItems(data))
+    const accounts = filterActive(extractItems(data))
+    return this.refreshOpenAiUsage(accounts)
+  }
+
+  private async getAccountsPage(params: Record<string, string>): Promise<PaginatedResponse<Account> | Account[]> {
+    return this.getJson<PaginatedResponse<Account> | Account[]>('/admin/accounts', params)
+  }
+
+  private async getAccountUsage(id: number, source: UsageSource): Promise<unknown> {
+    return this.getJson<unknown>(`/admin/accounts/${id}/usage`, { source, force: 'true' })
+  }
+
+  private async refreshOpenAiUsage(accounts: Account[]): Promise<Account[]> {
+    const refreshed = await Promise.all(
+      accounts.map(async (account) => {
+        if (!isOpenAiAccount(account)) return account
+        try {
+          const [active, passive] = await Promise.all([
+            this.getAccountUsage(account.id, 'active'),
+            this.getAccountUsage(account.id, 'passive')
+          ])
+          return {
+            ...account,
+            extra: {
+              ...account.extra,
+              ...usageToExtra(active, 'active'),
+              ...usageToExtra(passive, 'passive')
+            }
+          }
+        } catch (err) {
+          if (err instanceof HttpError && err.status === 401) throw err
+          return account
+        }
+      })
+    )
+    return refreshed
   }
 
   /** 获取今日仪表盘统计（今日 Token / 请求 / 花费 等） */

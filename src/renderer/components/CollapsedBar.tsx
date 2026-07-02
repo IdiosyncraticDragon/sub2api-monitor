@@ -1,6 +1,6 @@
 import { forwardRef, useState, type ReactNode } from 'react'
 import type { Account } from '../../shared/types'
-import { sessionUtilization } from '../../shared/usage'
+import { primaryUsage } from '../../shared/usage'
 import { utilizationLevel, levelColorVar, type CollapseStyle } from '../../shared/theme'
 import { PlatformChip } from './PlatformIcon'
 
@@ -22,11 +22,13 @@ interface Item {
   color: string
   pctNum: number | null
   pctText: string
+  label: string
 }
 
 function toItems(accounts: Account[]): Item[] {
   return accounts.map((a) => {
-    const frac = sessionUtilization(a.extra)
+    const primary = primaryUsage(a)
+    const frac = primary.frac
     const valid = typeof frac === 'number' && !Number.isNaN(frac)
     const pctNum = valid ? Math.round(Math.min(1, Math.max(0, frac)) * 100) : null
     return {
@@ -36,10 +38,13 @@ function toItems(accounts: Account[]): Item[] {
       frac,
       color: levelColorVar(utilizationLevel(frac)),
       pctNum,
-      pctText: pctNum === null ? '—' : `${pctNum}%`
+      pctText: pctNum === null ? '—' : `${pctNum}%`,
+      label: primary.kind === 'weekly' ? '7日' : '会话'
     }
   })
 }
+
+const itemTitle = (it: Item): string => `${it.name} · ${it.label} ${it.pctText}`
 
 // 折叠态迷你条：三种可切换样式（进度环 / 分段条 / 聚光泡）。
 // 拖动：整条背景即拖拽区（无固定手柄），仅交互元素（环/段/圆点/展开钮）为 no-drag。
@@ -123,7 +128,7 @@ export const CollapsedBar = forwardRef<HTMLDivElement, Props>(function Collapsed
           {items.map((it, i) => (
             <div
               key={it.id}
-              title={`${it.name} · ${it.pctText}`}
+              title={itemTitle(it)}
               onMouseEnter={() => setHover(i)}
               onMouseLeave={() => setHover(null)}
               className="no-drag relative h-[30px] w-[30px] cursor-pointer"
@@ -153,7 +158,7 @@ export const CollapsedBar = forwardRef<HTMLDivElement, Props>(function Collapsed
         </div>
         {expandBtn}
       </>,
-      hovered ? `${hovered.name} · ${hovered.pctText}` : `${items.length} 个账户`
+      hovered ? itemTitle(hovered) : `${items.length} 个账户`
     )
   }
 
@@ -170,7 +175,7 @@ export const CollapsedBar = forwardRef<HTMLDivElement, Props>(function Collapsed
             <div
               key={it.id}
               data-seg
-              title={`${it.name} · 会话 ${it.pctText}`}
+              title={itemTitle(it)}
               onMouseEnter={() => setHover(i)}
               onMouseLeave={() => setHover(null)}
               className="no-drag h-full w-9 cursor-pointer rounded-full"
@@ -180,7 +185,7 @@ export const CollapsedBar = forwardRef<HTMLDivElement, Props>(function Collapsed
         </div>
         {expandBtn}
       </>,
-      hovered ? `${hovered.name} · 会话 ${hovered.pctText}` : `${items.length} 个账户`
+      hovered ? itemTitle(hovered) : `${items.length} 个账户`
     )
   }
 

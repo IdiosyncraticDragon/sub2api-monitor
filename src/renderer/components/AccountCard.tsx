@@ -1,6 +1,6 @@
 import type { Account } from '../../shared/types'
 import { formatLastUsed, formatPercent } from '../../shared/format'
-import { sessionUtilization, sessionWindowRange, weeklyUtilization } from '../../shared/usage'
+import { primaryUsage, sessionWindowRange, weeklyUtilization } from '../../shared/usage'
 import { utilizationLevel, levelColorVar } from '../../shared/theme'
 import { PlatformChip } from './PlatformIcon'
 import { StatusBadge } from './StatusBadge'
@@ -12,15 +12,17 @@ interface Props {
 // 账户卡片（暖色设计）：平台芯片 + 名称 + 状态点；会话窗口利用率做主角的圆角进度条；
 // 底部展示最近使用（主）与 7 日利用率（次）。用量经 shared/usage 跨平台归一化为 0..1。
 export function AccountCard({ account }: Props): JSX.Element {
-  const sessionFrac = sessionUtilization(account.extra)
+  const primary = primaryUsage(account)
+  const sessionFrac = primary.frac
   const level = utilizationLevel(sessionFrac)
   const levelColor = levelColorVar(level)
   const sessionPct = formatPercent(sessionFrac)
   const barWidth = typeof sessionFrac === 'number' ? Math.min(100, Math.max(0, sessionFrac * 100)) : 0
 
   const window = sessionWindowRange(account)
-  const sessionLabel = window !== '—' ? `会话 · ${window}` : '会话 · 5h 窗口'
-  const weekly = formatPercent(weeklyUtilization(account.extra))
+  const sessionLabel =
+    primary.kind === 'weekly' ? '7 日额度' : window !== '—' ? `会话 · ${window}` : '会话 · 5h 窗口'
+  const weekly = formatPercent(weeklyUtilization(account))
   const isActive = account.status === 'active'
   const lastUsed = formatLastUsed(account.last_used_at, new Date())
   // 有使用记录时拼「…使用」（如「3分钟前使用」）；从未使用则原样展示

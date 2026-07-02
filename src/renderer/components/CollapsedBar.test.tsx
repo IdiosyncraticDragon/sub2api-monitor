@@ -12,7 +12,7 @@ const acc = (over: Partial<Account>): Account => ({
 
 const two = [
   acc({ id: 1, name: '账号A', platform: 'anthropic', extra: { session_window_utilization: 0.3 } }),
-  acc({ id: 2, name: '账号B', platform: 'openai', extra: { session_window_utilization: 0.7 } })
+  acc({ id: 2, name: '账号B', platform: 'openai', type: 'oauth', extra: { codex_5h_used_percent: 70 } })
 ]
 
 describe('CollapsedBar', () => {
@@ -42,6 +42,25 @@ describe('CollapsedBar', () => {
   it('无账户 → 空态文案', () => {
     render(<CollapsedBar accounts={[]} style="rings" onExpand={() => {}} />)
     expect(screen.getByText('暂无最近使用')).toBeInTheDocument()
+  })
+
+  it('OpenAI 在折叠态统一使用 5h 会话额度', () => {
+    render(
+      <CollapsedBar
+        accounts={[
+          acc({
+            id: 3,
+            name: 'free',
+            platform: 'openai',
+            type: 'openai_free',
+            extra: { codex_5h_used_percent: 61, codex_7d_used_percent: 18 }
+          })
+        ]}
+        style="rings"
+        onExpand={() => {}}
+      />
+    )
+    expect(screen.getByText('61')).toBeInTheDocument()
   })
 
   it('点击展开按钮触发 onExpand', () => {

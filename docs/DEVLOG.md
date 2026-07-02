@@ -189,7 +189,7 @@
   持久化的有效 JWT，直接进入轮询，未弹设置/登录窗，悬浮窗直接展示。
   - 运维注意：dev 下 `TaskStop`/Ctrl-C 只杀 npm 壳，Electron 子进程树常残留（占 5173 端口、锁
     userData 缓存 → 下次启动 `cache_util_win: 拒绝访问` + 跑到 5174）。重启前需按命令行含
-    `desktop-helper\node_modules` 定向 `Stop-Process` 清理（勿全杀 electron.exe，会误伤 Claude 桌面端）。
+    `project\node_modules` 定向 `Stop-Process` 清理（勿全杀 electron.exe）。
 
 - ✅ **托盘交互**：单击切换显示/隐藏、右键菜单（显示/隐藏、刷新、开机自启勾选、退出）、
   关闭悬浮窗隐藏到托盘（非退出）、菜单退出（应用真正结束，exit 0）——全部桌面实操符合预期。

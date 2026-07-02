@@ -30,6 +30,25 @@ export default function App(): JSX.Element {
     () => recentActiveAccounts(groups.flatMap((g) => g.accounts), MAX_RINGS),
     [groups]
   )
+  const recentKey = useMemo(
+    () =>
+      recent
+        .map((a) =>
+          [
+            a.id,
+            a.name,
+            a.platform ?? '',
+            a.type ?? '',
+            a.last_used_at ?? '',
+            a.extra?.session_window_utilization ?? '',
+            a.extra?.passive_usage_7d_utilization ?? '',
+            a.extra?.codex_5h_used_percent ?? '',
+            a.extra?.codex_7d_used_percent ?? ''
+          ].join(':')
+        )
+        .join('|'),
+    [recent]
+  )
 
   // 折叠态：测量迷你条内容尺寸，通知主进程把窗口收紧到自适应大小
   // 依赖折叠样式：切换样式会改变迷你条尺寸，需重新测量
@@ -39,7 +58,7 @@ export default function App(): JSX.Element {
     if (!el) return
     const rect = el.getBoundingClientRect()
     void window.api.setCollapsedSize(Math.ceil(rect.width), Math.ceil(rect.height))
-  }, [collapsed, recent.length, prefs.collapseStyle])
+  }, [collapsed, recentKey, prefs.collapseStyle])
 
   const toggleCollapsed = (next: boolean): void => {
     setCollapsed(next)
@@ -49,6 +68,7 @@ export default function App(): JSX.Element {
   if (collapsed) {
     return (
       <CollapsedBar
+        key={recentKey}
         ref={barRef}
         accounts={recent}
         style={prefs.collapseStyle}
