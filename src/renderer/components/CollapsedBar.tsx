@@ -1,6 +1,6 @@
 import { forwardRef, useState, type ReactNode } from 'react'
 import type { Account } from '../../shared/types'
-import { primaryUsage } from '../../shared/usage'
+import { sessionUtilization, weeklyUtilization } from '../../shared/usage'
 import { utilizationLevel, levelColorVar, type CollapseStyle } from '../../shared/theme'
 import { PlatformChip } from './PlatformIcon'
 
@@ -18,33 +18,45 @@ interface Item {
   id: number
   name: string
   platform?: string
+  session: UsageMetric
+  weekly: UsageMetric
+}
+
+interface UsageMetric {
   frac: number | undefined
   color: string
   pctNum: number | null
   pctText: string
-  label: string
+}
+
+function metric(frac: number | undefined): UsageMetric {
+  const valid = typeof frac === 'number' && !Number.isNaN(frac)
+  const pctNum = valid ? Math.round(Math.min(1, Math.max(0, frac)) * 100) : null
+  return {
+    frac,
+    color: levelColorVar(utilizationLevel(frac)),
+    pctNum,
+    pctText: pctNum === null ? '—' : `${pctNum}%`
+  }
 }
 
 function toItems(accounts: Account[]): Item[] {
   return accounts.map((a) => {
-    const primary = primaryUsage(a)
-    const frac = primary.frac
-    const valid = typeof frac === 'number' && !Number.isNaN(frac)
-    const pctNum = valid ? Math.round(Math.min(1, Math.max(0, frac)) * 100) : null
     return {
       id: a.id,
       name: a.name,
       platform: a.platform,
-      frac,
-      color: levelColorVar(utilizationLevel(frac)),
-      pctNum,
-      pctText: pctNum === null ? '—' : `${pctNum}%`,
-      label: primary.kind === 'weekly' ? '7日' : '会话'
+      session: metric(sessionUtilization(a)),
+      weekly: metric(weeklyUtilization(a))
     }
   })
 }
 
-const itemTitle = (it: Item): string => `${it.name} · ${it.label} ${it.pctText}`
+const itemTitle = (it: Item): string =>
+  `${it.name} · 5h ${it.session.pctText} · 7日 ${it.weekly.pctText}`
+
+const dash = (pctNum: number | null, circumference: number): string =>
+  `${((pctNum ?? 0) / 100) * circumference} ${circumference}`
 
 // 折叠态迷你条：三种可切换样式（进度环 / 分段条 / 聚光泡）。
 // 拖动：整条背景即拖拽区（无固定手柄），仅交互元素（环/段/圆点/展开钮）为 no-drag。
@@ -120,7 +132,8 @@ export const CollapsedBar = forwardRef<HTMLDivElement, Props>(function Collapsed
 
   // —— 进度环 ——
   if (style === 'rings') {
-    const C = 2 * Math.PI * 13
+    const OUTER_C = 2 * Math.PI * 14
+    const INNER_C = 2 * Math.PI * 9.5
     const hovered = hover != null ? items[hover] : null
     return frame(
       <>
@@ -131,27 +144,41 @@ export const CollapsedBar = forwardRef<HTMLDivElement, Props>(function Collapsed
               title={itemTitle(it)}
               onMouseEnter={() => setHover(i)}
               onMouseLeave={() => setHover(null)}
-              className="no-drag relative h-[30px] w-[30px] cursor-pointer"
+              className="no-drag relative h-[34px] w-[34px] cursor-pointer"
             >
-              <svg width="30" height="30" viewBox="0 0 30 30">
-                <circle cx="15" cy="15" r="13" fill="none" stroke="var(--s2a-track)" strokeWidth="3.5" />
+              <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true">
+                <circle cx="17" cy="17" r="14" fill="none" stroke="var(--s2a-track)" strokeWidth="3" />
                 <circle
-                  cx="15"
-                  cy="15"
-                  r="13"
+                  data-weekly-ring
+                  cx="17"
+                  cy="17"
+                  r="14"
                   fill="none"
-                  stroke={it.color}
-                  strokeWidth="3.5"
+                  stroke={it.weekly.color}
+                  strokeWidth="3"
                   strokeLinecap="round"
-                  strokeDasharray={`${((it.pctNum ?? 0) / 100) * C} ${C}`}
-                  transform="rotate(-90 15 15)"
+                  strokeDasharray={dash(it.weekly.pctNum, OUTER_C)}
+                  transform="rotate(-90 17 17)"
+                />
+                <circle cx="17" cy="17" r="9.5" fill="none" stroke="var(--s2a-track)" strokeWidth="3" />
+                <circle
+                  data-session-ring
+                  cx="17"
+                  cy="17"
+                  r="9.5"
+                  fill="none"
+                  stroke={it.session.color}
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeDasharray={dash(it.session.pctNum, INNER_C)}
+                  transform="rotate(-90 17 17)"
                 />
               </svg>
               <span
                 className="absolute inset-0 flex items-center justify-center text-[9px] font-extrabold"
-                style={{ color: it.color }}
+                style={{ color: it.session.color }}
               >
-                {it.pctText === '—' ? '—' : it.pctNum}
+                {it.session.pctText === '—' ? '—' : it.session.pctNum}
               </span>
             </div>
           ))}
@@ -167,10 +194,7 @@ export const CollapsedBar = forwardRef<HTMLDivElement, Props>(function Collapsed
     const hovered = hover != null ? items[hover] : null
     return frame(
       <>
-        <div
-          className="flex h-3 gap-[3px] overflow-hidden rounded-full"
-          style={{ background: 'var(--s2a-track)' }}
-        >
+        <div className="flex items-center gap-[4px]">
           {items.map((it, i) => (
             <div
               key={it.id}
@@ -178,9 +202,23 @@ export const CollapsedBar = forwardRef<HTMLDivElement, Props>(function Collapsed
               title={itemTitle(it)}
               onMouseEnter={() => setHover(i)}
               onMouseLeave={() => setHover(null)}
-              className="no-drag h-full w-9 cursor-pointer rounded-full"
-              style={{ background: it.color }}
-            />
+              className="no-drag flex h-[17px] w-10 cursor-pointer flex-col justify-end gap-[3px]"
+            >
+              <span className="block h-[7px] overflow-hidden rounded-full" style={{ background: 'var(--s2a-track)' }}>
+                <span
+                  data-session-bar
+                  className="block h-full rounded-full"
+                  style={{ width: `${it.session.pctNum ?? 0}%`, background: it.session.color }}
+                />
+              </span>
+              <span className="block h-[7px] overflow-hidden rounded-full" style={{ background: 'var(--s2a-track)' }}>
+                <span
+                  data-weekly-bar
+                  className="block h-full rounded-full"
+                  style={{ width: `${it.weekly.pctNum ?? 0}%`, background: it.weekly.color }}
+                />
+              </span>
+            </div>
           ))}
         </div>
         {expandBtn}
@@ -195,20 +233,39 @@ export const CollapsedBar = forwardRef<HTMLDivElement, Props>(function Collapsed
     <>
       {/* 图标 + 信息区：展示用（可拖动），不再承担展开点击 */}
       <div className="flex items-center gap-2.5">
-        <PlatformChip platform={spot.platform} size={34} glyph={16} radius={11} />
+        <div className="relative h-[38px] w-[38px] flex-none">
+          <svg width="38" height="38" viewBox="0 0 38 38" aria-hidden="true">
+            <circle cx="19" cy="19" r="17" fill="none" stroke="var(--s2a-track)" strokeWidth="3" />
+            <circle
+              data-spot-weekly-ring
+              cx="19"
+              cy="19"
+              r="17"
+              fill="none"
+              stroke={spot.weekly.color}
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeDasharray={dash(spot.weekly.pctNum, 2 * Math.PI * 17)}
+              transform="rotate(-90 19 19)"
+            />
+          </svg>
+          <span className="absolute inset-0 flex items-center justify-center">
+            <PlatformChip platform={spot.platform} size={28} glyph={14} radius={9} />
+          </span>
+        </div>
         <span className="block w-[150px]">
           <span className="mb-1 flex items-baseline justify-between">
             <span className="truncate text-[12px] font-extrabold" style={{ color: 'var(--s2a-text)' }}>
               {spot.name}
             </span>
-            <span className="text-[12px] font-extrabold" style={{ color: spot.color }}>
-              {spot.pctText}
+            <span className="text-[12px] font-extrabold" style={{ color: spot.session.color }}>
+              {spot.session.pctText}
             </span>
           </span>
           <span className="block h-[7px] overflow-hidden rounded-full" style={{ background: 'var(--s2a-track)' }}>
             <span
               className="block h-full rounded-full"
-              style={{ width: `${spot.pctNum ?? 0}%`, background: spot.color }}
+              style={{ width: `${spot.session.pctNum ?? 0}%`, background: spot.session.color }}
             />
           </span>
         </span>
@@ -222,7 +279,7 @@ export const CollapsedBar = forwardRef<HTMLDivElement, Props>(function Collapsed
             aria-label={`聚焦 ${it.name}`}
             className="h-[9px] w-[9px] rounded-full"
             style={{
-              background: it.color,
+              background: it.session.color,
               outline: i === Math.min(spotIdx, items.length - 1) ? '2px solid var(--s2a-text)' : 'none'
             }}
           />

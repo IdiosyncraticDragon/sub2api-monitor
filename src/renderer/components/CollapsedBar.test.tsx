@@ -11,29 +11,48 @@ const acc = (over: Partial<Account>): Account => ({
 })
 
 const two = [
-  acc({ id: 1, name: '账号A', platform: 'anthropic', extra: { session_window_utilization: 0.3 } }),
-  acc({ id: 2, name: '账号B', platform: 'openai', type: 'oauth', extra: { codex_5h_used_percent: 70 } })
+  acc({
+    id: 1,
+    name: '账号A',
+    platform: 'anthropic',
+    extra: { session_window_utilization: 0.3, passive_usage_7d_utilization: 0.12 }
+  }),
+  acc({
+    id: 2,
+    name: '账号B',
+    platform: 'openai',
+    type: 'oauth',
+    extra: { codex_5h_used_percent: 70, codex_7d_used_percent: 42 }
+  })
 ]
 
 describe('CollapsedBar', () => {
-  it('rings：每账户一个进度环，环内显示百分数', () => {
-    render(<CollapsedBar accounts={two} style="rings" onExpand={() => {}} />)
+  it('rings：每账户显示双层同心环，外环 7d、内环 5h', () => {
+    const { container } = render(<CollapsedBar accounts={two} style="rings" onExpand={() => {}} />)
     expect(screen.getByText('30')).toBeInTheDocument()
     expect(screen.getByText('70')).toBeInTheDocument()
+    expect(container.querySelectorAll('[data-weekly-ring]').length).toBe(2)
+    expect(container.querySelectorAll('[data-session-ring]').length).toBe(2)
+    expect(screen.getByTitle('账号A · 5h 30% · 7日 12%')).toBeInTheDocument()
   })
 
-  it('segments：默认提示显示账户数', () => {
+  it('segments：每账户显示双层条，上面 5h、下面 7d', () => {
     const { container } = render(<CollapsedBar accounts={two} style="segments" onExpand={() => {}} />)
     expect(screen.getByText(/2 个账户/)).toBeInTheDocument()
-    // 分段条：每账户一段
     expect(container.querySelectorAll('[data-seg]').length).toBe(2)
+    expect(container.querySelectorAll('[data-session-bar]').length).toBe(2)
+    expect(container.querySelectorAll('[data-weekly-bar]').length).toBe(2)
+    expect(container.querySelector('[data-session-bar]')).toHaveStyle({ width: '30%' })
+    expect(container.querySelector('[data-weekly-bar]')).toHaveStyle({ width: '12%' })
   })
 
-  it('spotlight：展示聚焦账户 + 平台芯片，点圆点切换', () => {
+  it('spotlight：展示聚焦账户 + 平台芯片，并在名前显示 7d 进度环', () => {
     const { container } = render(<CollapsedBar accounts={two} style="spotlight" onExpand={() => {}} />)
     // 默认聚焦最近使用（首个）
     expect(screen.getByText('账号A')).toBeInTheDocument()
+    expect(screen.getByText('30%')).toBeInTheDocument()
     expect(container.querySelector('[data-platform="claude"]')).toBeTruthy()
+    expect(container.querySelector('[data-spot-weekly-ring]')).toBeTruthy()
     // 点第二个圆点 → 切到账号B
     fireEvent.click(screen.getByLabelText('聚焦 账号B'))
     expect(screen.getByText('账号B')).toBeInTheDocument()
