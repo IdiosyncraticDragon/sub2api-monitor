@@ -7,6 +7,8 @@ import { PlatformChip } from './PlatformIcon'
 interface Props {
   /** 已是最近使用的 active 账户（≤5），由 recentActiveAccounts 选出 */
   accounts: Account[]
+  /** 当前完整 active 账户数；折叠态只展示最多 5 个，但默认计数需与展开态一致 */
+  activeCount?: number
   /** 折叠迷你条样式：进度环 / 分段条 / 聚光泡 */
   style?: CollapseStyle
   /** 点击展开按钮回调 */
@@ -64,10 +66,11 @@ const dash = (pctNum: number | null, circumference: number): string =>
 // 提示气泡（tip）为「绝对定位 + 截断」——不进入正常流，悬停切换文案不会改变窗口尺寸，
 // 因而不会触发「悬停→尺寸变化→鼠标错位→反复刷新」的抖动回环。
 export const CollapsedBar = forwardRef<HTMLDivElement, Props>(function CollapsedBar(
-  { accounts, style = 'rings', onExpand },
+  { accounts, activeCount, style = 'rings', onExpand },
   ref
 ) {
   const items = toItems(accounts)
+  const countText = `当前${activeCount ?? items.length}个active帐户`
   const [hover, setHover] = useState<number | null>(null)
   const [spotIdx, setSpotIdx] = useState(0)
 
@@ -185,7 +188,7 @@ export const CollapsedBar = forwardRef<HTMLDivElement, Props>(function Collapsed
         </div>
         {expandBtn}
       </>,
-      hovered ? itemTitle(hovered) : `${items.length} 个账户`
+      hovered ? itemTitle(hovered) : countText
     )
   }
 
@@ -223,7 +226,7 @@ export const CollapsedBar = forwardRef<HTMLDivElement, Props>(function Collapsed
         </div>
         {expandBtn}
       </>,
-      hovered ? itemTitle(hovered) : `${items.length} 个账户`
+      hovered ? itemTitle(hovered) : countText
     )
   }
 

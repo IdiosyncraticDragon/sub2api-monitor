@@ -38,12 +38,17 @@ describe('CollapsedBar', () => {
 
   it('segments：每账户显示双层条，上面 5h、下面 7d', () => {
     const { container } = render(<CollapsedBar accounts={two} style="segments" onExpand={() => {}} />)
-    expect(screen.getByText(/2 个账户/)).toBeInTheDocument()
+    expect(screen.getByText('当前2个active帐户')).toBeInTheDocument()
     expect(container.querySelectorAll('[data-seg]').length).toBe(2)
     expect(container.querySelectorAll('[data-session-bar]').length).toBe(2)
     expect(container.querySelectorAll('[data-weekly-bar]').length).toBe(2)
     expect(container.querySelector('[data-session-bar]')).toHaveStyle({ width: '30%' })
     expect(container.querySelector('[data-weekly-bar]')).toHaveStyle({ width: '12%' })
+  })
+
+  it('默认计数可独立于折叠态展示账户数', () => {
+    render(<CollapsedBar accounts={two} activeCount={8} style="rings" onExpand={() => {}} />)
+    expect(screen.getByText('当前8个active帐户')).toBeInTheDocument()
   })
 
   it('spotlight：展示聚焦账户 + 平台芯片，并在名前显示 7d 进度环', () => {

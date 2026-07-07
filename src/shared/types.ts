@@ -51,6 +51,10 @@ export interface AccountExtra {
   codex_7d_used_percent?: number
   /** [OpenAI/Codex] 7 日窗口重置时间（ISO） */
   codex_7d_reset_at?: string
+  /** 后端可能透传的订阅档位/计划名（如 free / plus） */
+  subscription_type?: string
+  plan?: string
+  account_type?: string
 }
 
 /** 账户（字段为真实 API 子集，未列出的字段按需再补） */
@@ -61,6 +65,10 @@ export interface Account {
   platform?: string
   /** 接入类型，如 oauth */
   type?: string
+  /** 订阅档位/计划名（如 free / plus），部分后端版本可能放在顶层 */
+  subscription_type?: string
+  plan?: string
+  account_type?: string
   notes?: string
   /** 最近使用时间（ISO，带时区） */
   last_used_at?: string | null
@@ -112,6 +120,30 @@ export interface DashboardSummary {
   totalAccounts?: number
 }
 
+/** /admin/users 页面中与今日使用监控有关的用户字段 */
+export interface AdminUser {
+  id: number | string
+  username?: string
+  name?: string
+  email?: string
+  last_used_at?: string | null
+  last_used?: string | null
+  last_used_time?: string | null
+}
+
+/** 展示用：当天使用过的用户 */
+export interface TodayUser {
+  id: number | string
+  username: string
+  lastUsedAt: string
+}
+
+/** 用户使用监控汇总 */
+export interface UserUsageSummary {
+  count: number
+  users: TodayUser[]
+}
+
 /** 渲染进程通过 preload 暴露的 API 契约 */
 export interface ExposedApi {
   /** 获取正常账户的分组视图 */
@@ -124,6 +156,10 @@ export interface ExposedApi {
   getDashboard: () => Promise<DashboardSummary | null>
   /** 订阅今日汇总更新，返回取消订阅函数 */
   onDashboardUpdate: (cb: (summary: DashboardSummary) => void) => () => void
+  /** 获取当天使用过的用户 */
+  getUserUsage: () => Promise<UserUsageSummary | null>
+  /** 订阅当天用户使用更新，返回取消订阅函数 */
+  onUserUsageUpdate: (cb: (summary: UserUsageSummary) => void) => () => void
   /** 是否已登录（有有效凭证） */
   isAuthenticated: () => Promise<boolean>
   /** 打开登录窗口 */

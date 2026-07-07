@@ -12,7 +12,13 @@ import { groupByGroup, latestActiveAccount } from './core/transform'
 import { apiBaseFrom, loginUrlFrom, normalizeOrigin } from './core/config'
 import { formatLastUsed, formatPercent } from '../shared/format'
 import { primaryUsage, sessionWindowRange } from '../shared/usage'
-import type { Account, DashboardStats, DashboardSummary, GroupView } from '../shared/types'
+import type {
+  Account,
+  DashboardStats,
+  DashboardSummary,
+  GroupView,
+  UserUsageSummary
+} from '../shared/types'
 
 const POLL_INTERVAL_MS = 30_000
 const POLL_MAX_BACKOFF_MS = 120_000
@@ -43,11 +49,13 @@ let isQuitting = false
 let isCollapsed = credentialStore.getCollapsed()
 let latestGroups: GroupView[] = []
 let latestDashboard: DashboardSummary | null = null
+let latestUserUsage: UserUsageSummary | null = null
 
-// 一轮轮询的快照：分组视图 + 今日汇总 + 最近使用账户（后者仅供托盘，不下发渲染层）。
+// 一轮轮询的快照：分组视图 + 今日汇总 + 用户监控 + 最近使用账户（后者仅供托盘）。
 interface Snapshot {
   groups: GroupView[]
   dashboard: DashboardSummary | null
+  userUsage: UserUsageSummary | null
   latest: Account | null
 }
 
@@ -77,13 +85,23 @@ const trayUsageFromAccount = (a: Account | null): { title: string; tooltip: stri
 
 // 拉取一轮快照：账户与今日汇总并行；汇总失败不影响账户展示（账户的 401 仍会触发重登）。
 const fetchSnapshot = async (): Promise<Snapshot> => {
-  const [accounts, stats] = await Promise.all([
+  const optional = async <T,>(work: Promise<T>): Promise<T | null> => {
+    try {
+      return await work
+    } catch (err) {
+      if (err instanceof HttpError && err.status === 401) throw err
+      return null
+    }
+  }
+  const [accounts, stats, userUsage] = await Promise.all([
     api.getActiveAccounts(),
-    api.getDashboardStats().catch(() => null)
+    optional(api.getDashboardStats()),
+    optional(api.getTodayUserUsage())
   ])
   return {
     groups: groupByGroup(accounts),
     dashboard: stats ? toSummary(stats) : null,
+    userUsage,
     latest: latestActiveAccount(accounts)
   }
 }
@@ -95,9 +113,11 @@ const poll = new PollService<Snapshot>({
   onData: (snap) => {
     latestGroups = snap.groups
     if (snap.dashboard) latestDashboard = snap.dashboard
+    if (snap.userUsage) latestUserUsage = snap.userUsage
     if (floatWindow && !floatWindow.isDestroyed()) {
       floatWindow.webContents.send('accounts:update', snap.groups)
       if (snap.dashboard) floatWindow.webContents.send('dashboard:update', snap.dashboard)
+      if (snap.userUsage) floatWindow.webContents.send('users:update', snap.userUsage)
     }
     if (tray) setTrayUsage(tray, trayUsageFromAccount(snap.latest))
   },
@@ -194,6 +214,7 @@ function startPolling(): void {
 function clearSnapshotCache(): void {
   latestGroups = []
   latestDashboard = null
+  latestUserUsage = null
   if (tray) setTrayUsage(tray, { title: '', tooltip: 'Sub2API Monitor' })
 }
 
@@ -330,6 +351,7 @@ ipcMain.handle('accounts:get', async () => {
   const snap = await fetchSnapshot()
   latestGroups = snap.groups
   if (snap.dashboard) latestDashboard = snap.dashboard
+  if (snap.userUsage) latestUserUsage = snap.userUsage
   return latestGroups
 })
 ipcMain.handle('accounts:refresh', async () => {
@@ -342,7 +364,17 @@ ipcMain.handle('dashboard:get', async () => {
   const snap = await fetchSnapshot()
   latestGroups = snap.groups
   latestDashboard = snap.dashboard
+  latestUserUsage = snap.userUsage
   return latestDashboard
+})
+ipcMain.handle('users:get', async () => {
+  if (latestUserUsage) return latestUserUsage
+  if (!auth.isAuthenticated()) return null
+  const snap = await fetchSnapshot()
+  latestGroups = snap.groups
+  if (snap.dashboard) latestDashboard = snap.dashboard
+  latestUserUsage = snap.userUsage
+  return latestUserUsage
 })
 ipcMain.handle('ui:getPrefs', () => credentialStore.getUiPrefs())
 ipcMain.handle('ui:setPrefs', (_e, patch) => credentialStore.setUiPrefs(patch))

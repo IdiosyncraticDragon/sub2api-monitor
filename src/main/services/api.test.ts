@@ -102,6 +102,12 @@ describe('ApiService.getActiveAccounts', () => {
     const fetchFn = vi.fn(async (urlLike: string | URL | Request) => {
       const url = new URL(urlLike as string)
       if (url.pathname.endsWith('/admin/accounts')) {
+        if (url.searchParams.get('type') === 'free') {
+          return jsonResponse({ code: 0, message: 'ok', data: { items: [], total: 0 } })
+        }
+        if (url.searchParams.get('type') === 'plus') {
+          return jsonResponse({ code: 0, message: 'ok', data: { items, total: 1 } })
+        }
         return jsonResponse({ code: 0, message: 'ok', data: { items, total: 1 } })
       }
       if (url.pathname.endsWith('/admin/accounts/7/usage') && url.searchParams.get('source') === 'active') {
@@ -140,6 +146,9 @@ describe('ApiService.getActiveAccounts', () => {
     const fetchFn = vi.fn(async (urlLike: string | URL | Request) => {
       const url = new URL(urlLike as string)
       if (url.pathname.endsWith('/admin/accounts')) {
+        if (url.searchParams.get('type')) {
+          return jsonResponse({ code: 0, message: 'ok', data: { items: [], total: 0 } })
+        }
         return jsonResponse({ code: 0, message: 'ok', data: { items, total: 1 } })
       }
       return jsonResponse({ message: 'boom' }, { ok: false, status: 500 })
@@ -162,6 +171,9 @@ describe('ApiService.getActiveAccounts', () => {
     const fetchFn = vi.fn(async (urlLike: string | URL | Request) => {
       const url = new URL(urlLike as string)
       if (url.pathname.endsWith('/admin/accounts')) {
+        if (url.searchParams.get('type')) {
+          return jsonResponse({ code: 0, message: 'ok', data: { items: [], total: 0 } })
+        }
         return jsonResponse({ code: 0, message: 'ok', data: { items, total: 1 } })
       }
       if (url.searchParams.get('source') === 'active') {
@@ -223,5 +235,85 @@ describe('ApiService.getDashboardStats', () => {
     const fetchFn = vi.fn(async () => jsonResponse({ code: 401, message: 'unauthorized', data: null }))
     const svc = makeService({ fetchImpl: fetchFn, token: 'expired' })
     await expect(svc.getDashboardStats()).rejects.toBeInstanceOf(HttpError)
+  })
+})
+
+describe('ApiService.getTodayUserUsage', () => {
+  it('从 /admin/users 获取当天使用用户，按最后使用时间倒序返回', async () => {
+    const fetchFn = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) =>
+      jsonResponse({
+        code: 0,
+        message: 'ok',
+        data: {
+          items: [
+            { id: 1, username: 'alice', last_used_at: '2026-07-02T09:00:00+08:00' },
+            { id: 2, username: 'bob', last_used_at: '2026-07-01T23:59:00+08:00' },
+            { id: 3, name: 'carol', last_used: '2026-07-02T11:30:00+08:00' },
+            { id: 4, email: 'dave@example.test', last_used_time: null }
+          ],
+          total: 4,
+          page: 1,
+          page_size: 100
+        }
+      })
+    )
+    const svc = makeService({ fetchImpl: fetchFn, token: 't' })
+
+    const result = await svc.getTodayUserUsage(new Date('2026-07-02T12:00:00+08:00'))
+
+    const url = new URL(fetchFn.mock.calls[0][0] as string)
+    expect(url.origin + url.pathname).toBe('https://example.test/api/v1/admin/users')
+    expect(url.searchParams.get('page')).toBe('1')
+    expect(url.searchParams.get('page_size')).toBe('100')
+    expect(result).toEqual({
+      count: 2,
+      users: [
+        { id: 3, username: 'carol', lastUsedAt: '2026-07-02T11:30:00+08:00' },
+        { id: 1, username: 'alice', lastUsedAt: '2026-07-02T09:00:00+08:00' }
+      ]
+    })
+  })
+
+  it('分页响应超过一页时继续读取后续页', async () => {
+    const fetchFn = vi.fn(async (urlLike: string | URL | Request) => {
+      const url = new URL(urlLike as string)
+      if (url.searchParams.get('page') === '1') {
+        return jsonResponse({
+          code: 0,
+          message: 'ok',
+          data: {
+            items: [{ id: 1, username: 'alice', last_used_at: '2026-07-02T09:00:00+08:00' }],
+            total: 2,
+            page: 1,
+            page_size: 1,
+            pages: 2
+          }
+        })
+      }
+      return jsonResponse({
+        code: 0,
+        message: 'ok',
+        data: {
+          items: [{ id: 2, username: 'bob', last_used_at: '2026-07-02T10:00:00+08:00' }],
+          total: 2,
+          page: 2,
+          page_size: 1,
+          pages: 2
+        }
+      })
+    })
+    const svc = makeService({ fetchImpl: fetchFn, token: 't' })
+
+    const result = await svc.getTodayUserUsage(new Date('2026-07-02T12:00:00+08:00'))
+
+    expect(fetchFn).toHaveBeenCalledTimes(2)
+    expect(result.count).toBe(2)
+    expect(result.users.map((u) => u.username)).toEqual(['bob', 'alice'])
+  })
+
+  it('HTTP 401 抛 HttpError', async () => {
+    const fetchFn = vi.fn(async () => jsonResponse({}, { ok: false, status: 401 }))
+    const svc = makeService({ fetchImpl: fetchFn, token: 'expired' })
+    await expect(svc.getTodayUserUsage()).rejects.toBeInstanceOf(HttpError)
   })
 })

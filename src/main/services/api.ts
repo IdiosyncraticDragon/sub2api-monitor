@@ -1,4 +1,12 @@
-import type { Account, ApiEnvelope, DashboardStats, PaginatedResponse } from '../../shared/types'
+import type {
+  Account,
+  AdminUser,
+  ApiEnvelope,
+  DashboardStats,
+  PaginatedResponse,
+  TodayUser,
+  UserUsageSummary
+} from '../../shared/types'
 import type { AccountExtra } from '../../shared/types'
 import { isOpenAiAccount } from '../../shared/usage'
 import { unwrap, extractItems, ApiError } from '../core/apiParse'
@@ -30,6 +38,23 @@ const num = (v: unknown): number | undefined =>
   typeof v === 'number' && !Number.isNaN(v) ? v : undefined
 
 const str = (v: unknown): string | undefined => (typeof v === 'string' ? v : undefined)
+
+const lastUsedOf = (u: AdminUser): string | null =>
+  u.last_used_at ?? u.last_used ?? u.last_used_time ?? null
+
+const usernameOf = (u: AdminUser): string =>
+  u.username?.trim() || u.name?.trim() || u.email?.trim() || String(u.id)
+
+const dayKey = (date: Date): string =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+    date.getDate()
+  ).padStart(2, '0')}`
+
+const isSameLocalDay = (iso: string, now: Date): boolean => {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return false
+  return dayKey(d) === dayKey(now)
+}
 
 function findNumber(obj: Record<string, unknown>, keys: string[]): number | undefined {
   for (const key of keys) {
@@ -168,5 +193,48 @@ export class ApiService {
   /** 获取今日仪表盘统计（今日 Token / 请求 / 花费 等） */
   async getDashboardStats(): Promise<DashboardStats> {
     return this.getJson<DashboardStats>('/admin/dashboard/stats')
+  }
+
+  /** 获取当天使用过的用户（来自 /admin/users 页面数据） */
+  async getTodayUserUsage(now = new Date()): Promise<UserUsageSummary> {
+    const users = await this.getAllUsers()
+    const today = users
+      .map<TodayUser | null>((u) => {
+        const lastUsedAt = lastUsedOf(u)
+        if (!lastUsedAt || !isSameLocalDay(lastUsedAt, now)) return null
+        return {
+          id: u.id,
+          username: usernameOf(u),
+          lastUsedAt
+        }
+      })
+      .filter((u): u is TodayUser => !!u)
+      .sort((a, b) => new Date(b.lastUsedAt).getTime() - new Date(a.lastUsedAt).getTime())
+
+    return { count: today.length, users: today }
+  }
+
+  private async getAllUsers(): Promise<AdminUser[]> {
+    const first = await this.getUsersPage('1')
+    const items = extractItems(first)
+    const pages = !Array.isArray(first) && typeof first.pages === 'number' ? first.pages : 1
+    const total = !Array.isArray(first) && typeof first.total === 'number' ? first.total : items.length
+    const pageSize =
+      !Array.isArray(first) && typeof first.page_size === 'number' ? first.page_size : Math.max(items.length, 1)
+    const expectedPages = pages > 1 ? pages : Math.ceil(total / pageSize)
+
+    if (expectedPages <= 1) return items
+
+    const rest = await Promise.all(
+      Array.from({ length: expectedPages - 1 }, (_, i) => this.getUsersPage(String(i + 2)))
+    )
+    return items.concat(rest.flatMap((page) => extractItems(page)))
+  }
+
+  private async getUsersPage(page: string): Promise<PaginatedResponse<AdminUser> | AdminUser[]> {
+    return this.getJson<PaginatedResponse<AdminUser> | AdminUser[]>('/admin/users', {
+      page,
+      page_size: '100'
+    })
   }
 }
