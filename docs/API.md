@@ -33,6 +33,7 @@
 | `/admin/accounts/{id}/usage` | GET | 单账户用量 | `source=passive\|active`、`force` |
 | `/admin/accounts/today-stats/batch` | POST | 批量今日统计 | body: `{ account_ids: number[] }` |
 | `/admin/groups` | GET | 分组列表 | `status=active`、`page`、`page_size` |
+| `/admin/users` | GET | 用户列表（用于今日使用用户监控） | `page`、`page_size` |
 
 > 本助手默认请求：`GET /admin/accounts?status=active&page=1&page_size=100`、`GET /admin/dashboard/stats`。
 
@@ -83,6 +84,18 @@
 > ⚠️ 单账户用量为**利用率**，列表接口**不含**单账户绝对 token 数；
 > 如需单账户今日 token，用 `POST /admin/accounts/today-stats/batch`。
 > 字段已建模于 `src/shared/types.ts`，格式化在 `src/shared/format.ts`。
+
+## 用户字段（`GET /admin/users` → `data.items[]`）
+
+桌面端与 iOS 端的“用户监控”只做当天使用过的用户摘要：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | number\|string | 用户 ID |
+| `username` / `name` / `email` | string | 展示名按此顺序 fallback |
+| `last_used_at` / `last_used` / `last_used_time` | string\|null | 最近使用时间；按设备本地日期筛“今日” |
+
+请求分页形态同其它列表端点；助手会从第 1 页开始按 `pages` 或 `total/page_size` 继续读取后续页。
 
 ## 联调提示
 

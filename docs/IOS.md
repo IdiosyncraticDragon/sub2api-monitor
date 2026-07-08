@@ -6,10 +6,14 @@ The iOS companion app is in `ios/Sub2APIWatchdog`.
 
 - Native SwiftUI app project: `ios/Sub2APIWatchdog/Sub2APIWatchdog.xcodeproj`.
 - SwiftPM package for fast local testing: `ios/Sub2APIWatchdog/Package.swift`.
-- Core module with API models, transforms, formatting, server config, API client, loader abstraction, JWT scanning, and Keychain token storage.
-- SwiftUI app with server origin input, manual Bearer token entry, WKWebView login/JWT scanning, Keychain token storage, dashboard totals, grouped active account list, pull-to-refresh, last refresh time, loading and error states.
-- Xcode UI test target with launch smoke tests for the connection controls and Web Login enablement. UI tests launch with `--ui-testing-reset` so persisted server/token state does not leak across runs.
-- Unit tests for active filtering, grouping, formatting, server URL normalization, request headers, envelope decoding, JWT scanning, and view model refresh/error/clear/login-token behavior.
+- Core module with API models, transforms, formatting, server config, API client, loader abstraction, JWT scanning, Keychain token storage, App Group widget snapshots, and shared UI preferences.
+- Chinese SwiftUI app with server origin input, WKWebView login/JWT scanning, Keychain token storage, subscription monitoring, user monitoring, dashboard totals, grouped active account list, pull-to-refresh, foreground auto-refresh with backoff, last refresh time, loading and error states.
+- OpenAI/Codex accounts refresh `/admin/accounts/{id}/usage` for active/passive usage so 5h and 7d percentages match the desktop app.
+- WidgetKit extension reads the latest App Group snapshot and supports rings, segments, and spotlight styles from the app appearance settings.
+- Xcode UI test target with launch smoke tests for the connection controls, segmented monitor views, and settings entry. UI tests launch with `--ui-testing-reset` so persisted server/token state does not leak across runs.
+- Unit tests cover active filtering, grouping, recent account selection, formatting, server URL normalization, request headers, envelope/list decoding, JWT expiry/refresh-token exclusion, user monitoring, widget preferences, and view model refresh/error/clear/login-token behavior.
+
+The app intentionally does not expose a manual Bearer token paste field. Users enter a server URL, complete Web Login, and the app stores the discovered valid access JWT.
 
 ## Commands
 
@@ -26,22 +30,12 @@ xcodebuild -project Sub2APIWatchdog.xcodeproj -scheme Sub2APIWatchdog -destinati
 
 `scripts/verify.sh` runs the checks above and attempts the final destination build.
 
-## Current Verification
+## Manual QA
 
-- `swift test` passes on this macOS machine with 15 tests.
-- `swiftc -typecheck` passes for the full Core + SwiftUI app source against the real iPhoneOS SDK.
-- `xcrun actool` compiles the asset catalog with `AppIcon` and `AccentColor`.
-- Manual `swiftc` iPhoneOS arm64 link smoke produces a Mach-O executable.
-- `xcodebuild -project Sub2APIWatchdog.xcodeproj -list` recognizes the app and test targets.
-- The Xcode project includes `Sub2APIWatchdogUITests`; executing UI tests still requires a working iOS simulator/device destination.
-- Full iOS simulator/device build is currently blocked by the local Xcode installation reporting: `CoreSimulator is out of date. Current version (1051.49.0) is older than build version (1051.55.0)`, followed by iOS platform destination ineligibility.
-- Runtime diagnosis: `/Library/Developer/CoreSimulator/Profiles/Runtimes` exists but contains no `.simruntime`, and `~/Library/Developer/CoreSimulator/Profiles/Runtimes` does not exist. Xcode sees the iPhoneOS/iPhoneSimulator SDKs but cannot resolve a runnable destination.
-
-## Manual QA After Xcode Repair
-
-- Install or repair the iOS platform component in Xcode Settings > Components.
 - Build and run `Sub2APIWatchdog` on an iOS simulator or device.
-- Run the `Sub2APIWatchdogUITests` scheme; it smoke-tests the first screen's connection controls.
-- Enter a Sub2API server origin, then either paste an admin Bearer token or use Web Login.
-- Confirm refresh shows dashboard totals and active account groups matching the admin backend.
-- Confirm the token persists across app relaunch via Keychain.
+- Enter a Sub2API server origin, then use `网页登录`.
+- Confirm the login sheet closes after finding a valid non-expired access JWT and the token persists across app relaunch via Keychain.
+- Confirm `订阅监控` shows Today totals and active account groups matching the admin backend.
+- Confirm OpenAI/Codex accounts show refreshed 5h/7d usage and reset-derived session windows.
+- Confirm `用户监控` shows users whose last-used time falls on the device's local current day.
+- Confirm appearance settings update theme, light/dark mode, and Widget style; then add/refresh the Widget and confirm rings/segments/spotlight render from the same snapshot.

@@ -54,7 +54,7 @@ electron-vite（main/preload/renderer 三进程）+ React 18 + TypeScript + Tail
 单一类型 `ExposedApi`（`src/shared/types.ts`）；preload 用 `invoke`/`on` 实现；main 注册对应 `ipcMain.handle` 与推送。**三处必须同步改**。通道含 `accounts:get/refresh/update`、`dashboard:get/update`、`auth:*`、`window:hide`、`window:getCollapsed/setCollapsed/setCollapsedSize`、`ui:getPrefs/setPrefs`（外观配置，存 electron-store 键 `ui.prefs`，与默认值合并）。
 
 ### 测试与打包
-TDD（Red→Green→Refactor），核心纯逻辑覆盖率 ≥80%。`npm test` / `test:cov` / `typecheck`。打包 `npm run build:win`（nsis+portable）/ `build:mac`（dmg+zip）→ `release/`；electron-builder 由 `build/icon.png`(512) 自动派生 icns/ico。iOS 伴侣应用在 `ios/Sub2APIWatchdog`（SwiftUI + SwiftPM 测试），`swift test` 验证其核心逻辑。
+TDD（Red→Green→Refactor），核心纯逻辑覆盖率 ≥80%。`npm test` / `test:cov` / `typecheck`。打包 `npm run build:win`（nsis+portable）/ `build:mac`（dmg+zip）→ `release/`；electron-builder 由 `build/icon.png`(512) 自动派生 icns/ico。iOS 伴侣应用在 `ios/Sub2APIWatchdog`（SwiftUI + SwiftPM 测试），`swift test` 验证其核心逻辑；iOS 端为中文界面，含订阅监控、用户监控、OpenAI/Codex 用量补拉、前台自动刷新、主题/明暗/Widget 样式偏好与 WidgetKit 快照。
 - **打包须与包管理器无关**：`electron.vite.config.ts` 的 main 用 `externalizeDepsPlugin({ exclude: ['electron-store'] })` 把 electron-store 打进主进程 bundle。否则 cnpm/pnpm 的 `.store` 符号链接布局会让 electron-builder 收不全依赖，装好后主进程抛 `Cannot find module 'electron-store'`。新增主进程运行时依赖时，要么同样 exclude 打进 bundle，要么确保用 npm 扁平布局打包。
 
 ### 已知阻塞/缺口
@@ -66,6 +66,7 @@ TDD（Red→Green→Refactor），核心纯逻辑覆盖率 ≥80%。`npm test` /
 
 ## 更新日志
 
+- **2026-07-08**：iOS 伴侣 App 追齐当前桌面功能设计——中文界面、订阅/用户监控分段、OpenAI/Codex `/usage` 补拉、JWT 过期/refresh-token 过滤、前台 30s 自动刷新+退避、三主题×明暗、Widget 进度环/分段条/聚光泡偏好；文档同步 `/admin/users`。
 - **2026-06-30**：折叠态拖动与稳定性修复——整条背景即拖拽区（移除固定 ⋮⋮ 手柄，仅环/段/圆点/展开钮为 no-drag），聚光泡也可拖动；提示气泡改为「绝对定位 + 截断」，悬停切换文案不再改变窗口尺寸，消除「悬停→尺寸变化→鼠标错位→反复刷新」的抖动回环。
 - **2026-06-30**：折叠态迷你条宽高自适应内容——卡片用 `w-max`（环/段数量、聚光泡信息宽决定卡片宽），收敛阴影 + 测量容器留 padding 防裁切；主进程折叠初始尺寸优先用上次测量持久化的 collapsedBounds 宽高（避免按固定值闪一下），渲染层再按当前内容收紧。
 - **2026-06-30**：按 ui-design 设计稿重构界面为暖色圆润风，**新增主题切换配置**——三套主题（陶土/拿铁/沙砾 Sage）× 明暗，CSS 变量 `--s2a-*` 驱动（`globals.css`），元数据/分级在 `shared/theme.ts`，`useTheme` hook + 标题栏 ⚙ 设置面板；折叠态新增 进度环/分段条/聚光泡 三种可选样式；配置持久化于 `ui.prefs`（IPC `ui:getPrefs/setPrefs`）。汇总条改三栏（花费降为脚注），账户卡以会话窗口利用率为主进度条。`darkMode` 由 `media` 改为属性驱动 `[data-mode="dark"]`；删除冗余 `ProgressRing`（折叠环已内联）。

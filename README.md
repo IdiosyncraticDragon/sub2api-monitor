@@ -29,7 +29,7 @@
 
 ### 方式 A：下载安装包（推荐）
 
-到项目的 [**Releases**](https://github.com/IdiosyncraticDragon/sub2api-monitor/releases) 下载对应平台的安装包：
+到项目的 **Releases** 下载对应平台的安装包：
 
 | 平台 | 文件 | 说明 |
 | --- | --- | --- |
@@ -186,7 +186,7 @@
 
 ## 8. iOS 伴侣 App
 
-iOS 端是原生 SwiftUI 伴侣 App，用来在手机或模拟器上查看同一套 Sub2API active 账户、今日汇总和用量窗口。它沿用桌面端默认的 Clay 悬浮窗主题，并提供一个 WidgetKit 小组件预览 active 账户会话用量。
+iOS 端是原生 SwiftUI 伴侣 App，用来在手机或模拟器上查看同一套 Sub2API active 账户、今日汇总、OpenAI/Codex 用量窗口和当天使用用户。它沿用桌面端暖色主题体系，并提供 WidgetKit 小组件预览最近使用 active 账户的会话用量。
 
 ### 安装 / 运行
 
@@ -212,22 +212,24 @@ xcodebuild -project Sub2APIWatchdog.xcodeproj -scheme Sub2APIWatchdog -destinati
 ### 首次登录
 
 1. 打开 App，在顶部输入 Sub2API 后台 origin，例如 `https://your-sub2api.example.com`。
-2. 点 **Web Login**，在弹出的网页里按正常后台流程输入账号密码。
+2. 点 **网页登录**，在弹出的网页里按正常后台流程输入账号密码。
 3. 登录成功后，App 会自动扫描网页登录态里的 JWT，保存到 iOS Keychain，并关闭登录页。
-4. 回到主界面后会自动刷新，展示 Today 汇总和 active 账户分组。
+4. 回到主界面后会自动刷新，展示 Today 汇总、active 账户分组和今日使用用户。
 
 iOS 端不再提供“直接粘贴 token”的入口；token 获取、保存和刷新由 App 自动完成。
 
 ### 主界面
 
-- **Connection**：服务器地址、网页登录入口、清除登录态。
-- **Today**：今日 token、请求数、花费和正常账户数。
-- **账户卡片**：按 `groups[0].name` 分组展示 active 账户，包含平台、状态、5 小时会话用量、7 日用量、最近使用和会话窗口。
-- **刷新**：右上角刷新按钮会重新拉取 `/admin/accounts` 与 `/admin/dashboard/stats`。
+- **连接面板**：服务器地址、网页登录入口、重新登录、清除登录态。
+- **订阅监控**：今日 token、请求数、花费、正常账户数，以及按 `groups[0].name` 分组的 active 账户卡片。
+- **账户卡片**：包含平台、状态、5 小时会话用量、7 日用量、最近使用和会话窗口；OpenAI/Codex 会额外补拉 `/admin/accounts/{id}/usage` 以显示最新 5h/7d 百分比。
+- **用户监控**：读取 `/admin/users`，按设备本地日期筛选今天使用过的用户并按最近使用排序。
+- **外观设置**：陶土 Clay / 拿铁 Latte / 沙砾 Sage、浅色 / 深色、Widget 样式（进度环 / 分段条 / 聚光泡）。
+- **刷新**：右上角刷新按钮和下拉刷新会重新拉取账户、Dashboard 与用户监控；App 前台每 30 秒自动刷新，失败时指数退避。
 
 ### 桌面小组件
 
-iOS 小组件使用 macOS 折叠态的视觉主题：浅色 Clay 背景、进度环/分段展示和相同的低/中/高用量颜色。App 每次刷新成功后会把轻量快照写入 App Group，并请求 WidgetKit 重载；小组件会显示最近一次成功刷新的 active 账户和 Today 摘要。实际刷新时机仍受 iOS 小组件调度限制。
+iOS 小组件使用桌面折叠态的视觉主题：进度环、分段条、聚光泡三种样式，和相同的低/中/高用量颜色。App 每次刷新成功后会把轻量快照写入 App Group，并请求 WidgetKit 重载；小组件会显示最近一次成功刷新的最近使用 active 账户和 Today 摘要。实际刷新时机仍受 iOS 小组件调度限制。
 
 更多 iOS 开发说明见 [ios/Sub2APIWatchdog/README.md](ios/Sub2APIWatchdog/README.md)。
 

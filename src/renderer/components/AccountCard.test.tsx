@@ -22,6 +22,15 @@ describe('AccountCard', () => {
     expect(container.querySelector('[data-platform="claude"]')).toBeTruthy()
   })
 
+  it('在账号名前显示 7d 用量进度环', () => {
+    const { container } = render(<AccountCard account={base} />)
+    const ring = container.querySelector('[data-account-weekly-ring]')
+    const dash = ring?.getAttribute('stroke-dasharray') ?? ''
+    const [used, total] = dash.split(' ').map(Number)
+    expect(ring).toBeTruthy()
+    expect(used / total).toBeCloseTo(0.11)
+  })
+
   it('会话窗口利用率为主角：百分比 + 时段标签', () => {
     render(<AccountCard account={base} />)
     expect(screen.getByText('30%')).toBeInTheDocument()

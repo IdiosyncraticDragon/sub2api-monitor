@@ -10,6 +10,8 @@ final class WatchdogViewModel: ObservableObject {
     @AppStorage("serverOrigin") var serverOrigin = ""
     @Published var sections: [AccountSection] = []
     @Published var dashboard: DashboardStats?
+    @Published var userUsage: UserUsageSummary?
+    @Published var uiPrefs = UiPreferences()
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var lastRefreshedAt: Date?
@@ -19,6 +21,7 @@ final class WatchdogViewModel: ObservableObject {
     private let loader: WatchdogDataLoading
     private let now: @MainActor () -> Date
     private var token: String?
+    private var autoRefreshTask: Task<Void, Never>?
 
     init(
         credentials: CredentialStoring = KeychainCredentialStore(),
@@ -29,12 +32,21 @@ final class WatchdogViewModel: ObservableObject {
         self.credentials = credentials
         self.loader = loader
         self.now = now
-        self.token = credentials.loadToken()
-        self.isAuthenticated = self.token?.isEmpty == false
+        self.uiPrefs = UiPreferencesStore.load()
+        if let token = credentials.loadToken(), JWTScanner.isUsableAccessToken(token, now: now()) {
+            self.token = token
+            self.isAuthenticated = true
+        } else {
+            self.token = nil
+            self.isAuthenticated = false
+            try? credentials.clearToken()
+        }
         if ProcessInfo.processInfo.arguments.contains("--ui-testing-reset") {
             self.token = nil
             self.isAuthenticated = false
             self.serverOrigin = ""
+            self.uiPrefs = UiPreferences()
+            UiPreferencesStore.clear()
             try? credentials.clearToken()
         }
         if let initialServerOrigin {
@@ -53,6 +65,10 @@ final class WatchdogViewModel: ObservableObject {
     @discardableResult
     func acceptToken(_ token: String) -> Bool {
         let normalized = token.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard JWTScanner.isUsableAccessToken(normalized, now: now()) else {
+            errorMessage = "未找到有效的登录凭证，请确认网页登录已完成。"
+            return false
+        }
         do {
             try credentials.saveToken(normalized)
             self.token = normalized
@@ -60,7 +76,7 @@ final class WatchdogViewModel: ObservableObject {
             errorMessage = nil
             return isAuthenticated
         } catch {
-            errorMessage = "Could not save login session: \(error.localizedDescription)"
+            errorMessage = "无法保存登录态：\(error.localizedDescription)"
             return false
         }
     }
@@ -72,46 +88,104 @@ final class WatchdogViewModel: ObservableObject {
             isAuthenticated = false
             sections = []
             dashboard = nil
+            userUsage = nil
             WidgetSnapshotStore.clear()
             WidgetCenter.shared.reloadTimelines(ofKind: WidgetSnapshotConfig.widgetKind)
             lastRefreshedAt = nil
             errorMessage = nil
         } catch {
-            errorMessage = "Could not clear token."
+            errorMessage = "无法清除登录态。"
         }
     }
 
-    func refresh() async {
+    func setUiPreferences(_ prefs: UiPreferences) {
+        uiPrefs = prefs
+        UiPreferencesStore.save(prefs)
+        WidgetCenter.shared.reloadTimelines(ofKind: WidgetSnapshotConfig.widgetKind)
+    }
+
+    func startAutoRefresh() {
+        guard autoRefreshTask == nil else { return }
+        autoRefreshTask = Task { [weak self] in
+            var currentDelay: UInt64 = 30
+            while !Task.isCancelled {
+                guard let self else { return }
+                if self.isConfigured {
+                    let success = await self.refresh(silent: true)
+                    let sleepSeconds = success ? 30 : currentDelay
+                    currentDelay = success ? 30 : min(120, currentDelay * 2)
+                    try? await Task.sleep(nanoseconds: sleepSeconds * 1_000_000_000)
+                } else {
+                    currentDelay = 30
+                    try? await Task.sleep(nanoseconds: 30 * 1_000_000_000)
+                }
+            }
+        }
+    }
+
+    func stopAutoRefresh() {
+        autoRefreshTask?.cancel()
+        autoRefreshTask = nil
+    }
+
+    @discardableResult
+    func refresh() async -> Bool {
+        await refresh(silent: false)
+    }
+
+    @discardableResult
+    private func refresh(silent: Bool) async -> Bool {
         guard let origin = ServerConfig.normalizeOrigin(serverOrigin) else {
-            errorMessage = "Enter a valid Sub2API server URL."
-            return
+            if !silent { errorMessage = "请输入有效的 Sub2API 服务器地址。" }
+            return false
         }
         guard let token, !token.isEmpty else {
             isAuthenticated = false
-            errorMessage = "Sign in with Web Login first."
-            return
+            if !silent { errorMessage = "请先使用网页登录。" }
+            return false
         }
+        guard !isLoading else { return true }
 
         isLoading = true
-        errorMessage = nil
+        if !silent { errorMessage = nil }
         defer { isLoading = false }
 
         do {
             let snapshot = try await loader.snapshot(apiBase: ServerConfig.apiBase(from: origin), token: token)
             sections = AccountTransform.groupByGroup(snapshot.accounts)
-            dashboard = snapshot.dashboard
+            if let snapshotDashboard = snapshot.dashboard {
+                dashboard = snapshotDashboard
+            }
+            if let snapshotUserUsage = snapshot.userUsage {
+                userUsage = snapshotUserUsage
+            }
             lastRefreshedAt = now()
-            WidgetSnapshotStore.save(WidgetSnapshotStore.makeSnapshot(from: snapshot, updatedAt: lastRefreshedAt ?? now()))
+            WidgetSnapshotStore.save(
+                WidgetSnapshotStore.makeSnapshot(
+                    from: WatchdogSnapshot(accounts: snapshot.accounts, dashboard: dashboard, userUsage: userUsage),
+                    updatedAt: lastRefreshedAt ?? now()
+                )
+            )
             WidgetCenter.shared.reloadTimelines(ofKind: WidgetSnapshotConfig.widgetKind)
-        } catch WatchdogAPIError.httpStatus(401) {
-            errorMessage = "Token expired or unauthorized."
+            errorMessage = nil
+            return true
+        } catch WatchdogAPIError.httpStatus(let status) where status == 401 {
+            errorMessage = "登录凭证已过期，请重新登录。"
             self.token = nil
             self.isAuthenticated = false
             try? credentials.clearToken()
             WidgetSnapshotStore.clear()
             WidgetCenter.shared.reloadTimelines(ofKind: WidgetSnapshotConfig.widgetKind)
+            return false
         } catch {
-            errorMessage = "Refresh failed: \(error.localizedDescription)"
+            if !silent {
+                errorMessage = "刷新失败：\(error.localizedDescription)"
+            }
+            return false
         }
+    }
+
+    deinit {
+        autoRefreshTask?.cancel()
     }
 }

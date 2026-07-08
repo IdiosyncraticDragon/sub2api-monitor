@@ -21,7 +21,7 @@ struct LoginWebView: View {
             case .loading:
                 VStack(spacing: 12) {
                     ProgressView()
-                    Text("Opening \(loginURL.host ?? loginURL.absoluteString)")
+                    Text("正在打开 \(loginURL.host ?? loginURL.absoluteString)")
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(.secondary)
                 }
@@ -56,7 +56,7 @@ private struct LoginErrorView: View {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 38, weight: .semibold))
                 .foregroundStyle(.orange)
-            Text("Login page failed to load")
+            Text("登录页加载失败")
                 .font(.headline.weight(.black))
             Text(url.absoluteString)
                 .font(.caption.monospaced())
@@ -67,7 +67,7 @@ private struct LoginErrorView: View {
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-            Button("Retry", action: onRetry)
+            Button("重试", action: onRetry)
                 .buttonStyle(.borderedProminent)
         }
         .padding(22)
@@ -164,7 +164,7 @@ private struct LoginWebViewRepresentable: UIViewRepresentable {
                     let cookieEntries = cookies.map { cookie in
                         StorageEntry(key: "cookie.\(cookie.name)", value: cookie.value)
                     }
-                    if let token = JWTScanner.findAccessToken(in: storageEntries + cookieEntries) {
+                    if let token = JWTScanner.findUsableAccessToken(in: storageEntries + cookieEntries) {
                         self.didFinish = true
                         self.timer?.invalidate()
                         self.onToken(token)
@@ -183,16 +183,16 @@ private struct LoginWebViewRepresentable: UIViewRepresentable {
             if nsError.domain == NSURLErrorDomain {
                 switch nsError.code {
                 case NSURLErrorAppTransportSecurityRequiresSecureConnection:
-                    return "iOS blocked this URL because it is not HTTPS. Use an HTTPS server URL."
+                    return "iOS 拦截了非 HTTPS 地址。请使用 HTTPS 服务器地址。"
                 case NSURLErrorServerCertificateUntrusted,
                      NSURLErrorServerCertificateHasBadDate,
                      NSURLErrorServerCertificateNotYetValid,
                      NSURLErrorSecureConnectionFailed:
-                    return "iOS rejected the server TLS certificate. Open the URL in Safari on the simulator to confirm the certificate is trusted."
+                    return "iOS 拒绝了服务器 TLS 证书。请先在模拟器 Safari 中确认该证书可信。"
                 case NSURLErrorCannotFindHost:
-                    return "Cannot find the host. Check the server URL and simulator network/DNS."
+                    return "无法找到主机。请检查服务器地址和模拟器网络/DNS。"
                 case NSURLErrorCannotConnectToHost:
-                    return "Cannot connect to the host. Check that the Sub2API server is reachable from the simulator."
+                    return "无法连接到主机。请确认模拟器可以访问 Sub2API 服务。"
                 default:
                     break
                 }
@@ -223,7 +223,7 @@ struct LoginWebView: View {
     let onToken: (String) -> Void
 
     var body: some View {
-        ContentUnavailableView("Login is available on iOS", systemImage: "iphone")
+        ContentUnavailableView("网页登录仅在 iOS 可用", systemImage: "iphone")
     }
 }
 #endif

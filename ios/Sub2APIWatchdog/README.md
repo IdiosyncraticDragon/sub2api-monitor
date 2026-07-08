@@ -5,17 +5,19 @@ Native SwiftUI iOS companion app for the Sub2API watchdog.
 ## Current Scope
 
 - Configure a Sub2API server origin.
-- Use an in-app Web Login sheet to sign in to the real Sub2API admin page.
-- Automatically scan local/session storage and cookies for an access JWT.
+- Use an in-app `网页登录` sheet to sign in to the real Sub2API admin page.
+- Automatically scan local/session storage and cookies for a valid, non-expired access JWT.
 - Persist the token in Keychain.
 - Fetch `/admin/accounts?status=active&page=1&page_size=100`.
+- Refresh OpenAI/Codex/GPT account usage from `/admin/accounts/{id}/usage?source=active|passive&force=true`.
 - Fetch `/admin/dashboard/stats`.
-- Display today's totals plus active accounts grouped by `groups[0].name`.
-- Display Anthropic and OpenAI/Codex usage fields with the same utilization semantics as the desktop app.
-- Provide a WidgetKit extension styled after the macOS collapsed floating component.
-- Share the same field assumptions as the desktop app's `docs/API.md`.
+- Fetch `/admin/users` and show users used today by the device's local date.
+- Display Chinese subscription and user monitoring views with the same utilization semantics as the desktop app.
+- Provide foreground auto-refresh every 30s with exponential backoff on failures.
+- Provide theme, light/dark mode, and Widget style settings shared with WidgetKit through the App Group.
+- Provide a WidgetKit extension with rings, segments, and spotlight styles.
 
-The iOS app intentionally does not expose a manual token paste field. Token handling belongs to the app: users enter a server URL, complete Web Login, and the app stores the discovered session token.
+The iOS app intentionally does not expose a manual token paste field. Token handling belongs to the app: users enter a server URL, complete Web Login, and the app stores the discovered access token.
 
 ## Usage
 
@@ -34,30 +36,31 @@ The iOS app intentionally does not expose a manual token paste field. Token hand
    https://your-sub2api.example.com
    ```
 
-4. Tap **Web Login**, sign in on the web page, then wait for the login sheet to close automatically.
+4. Tap **网页登录**, sign in on the web page, then wait for the login sheet to close automatically.
 
-5. The app refreshes active accounts and dashboard totals after the token is saved.
+5. The app refreshes active accounts, dashboard totals, and today's user usage after the token is saved.
 
 If the login page fails to load, the sheet shows the WebKit/network error instead of a blank page. If Keychain reports `OSStatus -34018`, rebuild/run with normal local signing; do not install a `CODE_SIGNING_ALLOWED=NO` build for login QA.
 
 ## Interface
 
-- App theme: matches the macOS Clay floating window theme.
-- Connection panel: server origin, Web Login, reconnect, clear session.
-- Today panel: token total, request count, cost, normal accounts.
-- Account cards: active status, platform mark, 5h session utilization, 7d usage, session window, last used.
-- Widget: WidgetKit small/medium families with Clay colors and collapsed-style usage rings/list.
+- **连接面板**：服务器地址、网页登录、重新登录、清除登录态。
+- **订阅监控**：Today totals, grouped active account cards, 5h session usage, 7d usage, reset-derived session window, and last-used time.
+- **用户监控**：today's used-user count plus users sorted by latest use.
+- **外观设置**：Clay/Latte/SandSage themes, light/dark appearance, and Widget style.
+- **Widget**：small/medium families with Clay-family colors, Today summary, and recent active account usage.
 
-The widget target is embedded and buildable. The app writes a lightweight snapshot to the shared App Group after every successful refresh, then asks WidgetKit to reload `Sub2APIWatchdogWidget`. Widget updates are still subject to iOS scheduling.
+The widget target is embedded and buildable. The app writes a lightweight snapshot to the shared App Group after every successful refresh, persists UI preferences to the same App Group, and asks WidgetKit to reload `Sub2APIWatchdogWidget`. Widget updates are still subject to iOS scheduling.
 
 ## Layout
 
 - `Sub2APIWatchdog.xcodeproj` is the iOS app project for Xcode.
 - `Package.swift` is a fast SwiftPM entry for core logic tests and local builds.
-- `Sources/Sub2APIWatchdogCore` contains API models, formatting, transforms, server config, API client, loader abstraction, JWT scanning, and Keychain storage.
+- `Sources/Sub2APIWatchdogCore` contains API models, formatting, transforms, server config, API client, loader abstraction, JWT scanning, Keychain storage, widget snapshots, and UI preferences.
 - `Sources/Sub2APIWatchdogApp` contains the SwiftUI app, view model, and WKWebView login sheet.
+- `Sources/Sub2APIWatchdogWidget` contains the WidgetKit extension.
 - `Tests/Sub2APIWatchdogCoreTests` covers the core behavior.
-- `Tests/Sub2APIWatchdogUITests` contains launch smoke tests for the connection controls and Web Login enablement. The app honors `--ui-testing-reset` to clear persisted UI state during UI tests.
+- `Tests/Sub2APIWatchdogUITests` contains launch smoke tests for the connection controls, segmented monitor views, and settings entry. The app honors `--ui-testing-reset` to clear persisted UI state during UI tests.
 
 ## Verification
 
@@ -76,14 +79,13 @@ xcodebuild -project Sub2APIWatchdog.xcodeproj -scheme Sub2APIWatchdog -destinati
 
 For convenience, run `scripts/verify.sh` to execute the same checks plus an optional full iOS destination build.
 
-On the current macOS machine, `swift test` passes with 18 tests and the `Sub2APIWatchdog` scheme builds successfully for the iPhone 17 / iOS 26.5 simulator.
-
 ## Manual QA
 
 - Open `Sub2APIWatchdog.xcodeproj` in Xcode.
 - Select a valid iOS simulator or device.
-- Run the `Sub2APIWatchdogUITests` scheme for the first-screen smoke test.
-- Enter the Sub2API origin, then use Web Login.
+- Run the `Sub2APIWatchdogUITests` scheme for first-screen and settings smoke tests.
+- Enter the Sub2API origin, then use `网页登录`.
 - Confirm the login sheet does not reload while typing or tapping inside the web page.
 - Confirm the sheet closes automatically after login and the main view refreshes.
-- Tap refresh and confirm dashboard totals and active account groups match the web admin backend.
+- Tap refresh or pull to refresh and confirm dashboard totals, active account groups, and today user usage match the web admin backend.
+- Confirm theme, light/dark appearance, and Widget style persist across relaunch.

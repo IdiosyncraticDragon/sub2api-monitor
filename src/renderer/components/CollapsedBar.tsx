@@ -3,6 +3,7 @@ import type { Account } from '../../shared/types'
 import { sessionUtilization, weeklyUtilization } from '../../shared/usage'
 import { utilizationLevel, levelColorVar, type CollapseStyle } from '../../shared/theme'
 import { PlatformChip } from './PlatformIcon'
+import { UsageRing } from './UsageRing'
 
 interface Props {
   /** 已是最近使用的 active 账户（≤5），由 recentActiveAccounts 选出 */
@@ -236,26 +237,14 @@ export const CollapsedBar = forwardRef<HTMLDivElement, Props>(function Collapsed
     <>
       {/* 图标 + 信息区：展示用（可拖动），不再承担展开点击 */}
       <div className="flex items-center gap-2.5">
-        <div className="relative h-[38px] w-[38px] flex-none">
-          <svg width="38" height="38" viewBox="0 0 38 38" aria-hidden="true">
-            <circle cx="19" cy="19" r="17" fill="none" stroke="var(--s2a-track)" strokeWidth="3" />
-            <circle
-              data-spot-weekly-ring
-              cx="19"
-              cy="19"
-              r="17"
-              fill="none"
-              stroke={spot.weekly.color}
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeDasharray={dash(spot.weekly.pctNum, 2 * Math.PI * 17)}
-              transform="rotate(-90 19 19)"
-            />
-          </svg>
-          <span className="absolute inset-0 flex items-center justify-center">
-            <PlatformChip platform={spot.platform} size={28} glyph={14} radius={9} />
-          </span>
-        </div>
+        <UsageRing
+          frac={spot.weekly.frac}
+          title={`${spot.name} · 7日 ${spot.weekly.pctText}`}
+          ariaLabel={`${spot.name} 7日用量 ${spot.weekly.pctText}`}
+          progressDataAttr="data-spot-weekly-ring"
+        >
+          <PlatformChip platform={spot.platform} size={28} glyph={14} radius={9} />
+        </UsageRing>
         <span className="block w-[150px]">
           <span className="mb-1 flex items-baseline justify-between">
             <span className="truncate text-[12px] font-extrabold" style={{ color: 'var(--s2a-text)' }}>

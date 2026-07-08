@@ -4,12 +4,12 @@ import XCTest
 #endif
 
 final class WidgetSnapshotStoreTests: XCTestCase {
-    func testMakeSnapshotUsesDashboardAndHighestSessionAccounts() {
+    func testMakeSnapshotUsesDashboardAndRecentActiveAccounts() {
         let snapshot = WatchdogSnapshot(
             accounts: [
-                sampleAccount(id: 1, group: "A", session: 0.2),
-                sampleAccount(id: 2, group: "A", session: 0.8),
-                sampleAccount(id: 3, group: "A", session: 0.5)
+                sampleAccount(id: 1, group: "A", session: 0.2, weekly: 0.1, lastUsedAt: "2026-07-02T09:00:00+08:00"),
+                sampleAccount(id: 2, group: "A", session: 0.8, weekly: 0.2, lastUsedAt: "2026-07-02T11:00:00+08:00"),
+                sampleAccount(id: 3, group: "A", session: 0.5, weekly: 0.3, lastUsedAt: "2026-07-02T10:00:00+08:00")
             ],
             dashboard: DashboardStats(todayTokens: 1_250, todayRequests: 42, todayCost: 0.75, normalAccounts: 3)
         )
@@ -23,6 +23,7 @@ final class WidgetSnapshotStoreTests: XCTestCase {
         XCTAssertEqual(widget.normalAccounts, "3")
         XCTAssertEqual(widget.accounts.map(\.id), [2, 3, 1])
         XCTAssertEqual(widget.accounts.first?.session, 0.8)
+        XCTAssertEqual(widget.accounts.first?.weekly, 0.2)
     }
 
     func testSaveLoadAndClearSnapshot() {
@@ -41,5 +42,16 @@ final class WidgetSnapshotStoreTests: XCTestCase {
 
         WidgetSnapshotStore.clear(defaults: defaults)
         XCTAssertNil(WidgetSnapshotStore.load(defaults: defaults))
+    }
+
+    func testUiPreferencesStoreSavesLoadsAndClears() {
+        let defaults = UserDefaults(suiteName: "UiPreferencesStoreTests.\(UUID().uuidString)")!
+        let prefs = UiPreferences(theme: .latte, appearance: .dark, widgetStyle: .segments)
+
+        UiPreferencesStore.save(prefs, defaults: defaults)
+        XCTAssertEqual(UiPreferencesStore.load(defaults: defaults), prefs)
+
+        UiPreferencesStore.clear(defaults: defaults)
+        XCTAssertEqual(UiPreferencesStore.load(defaults: defaults), UiPreferences())
     }
 }

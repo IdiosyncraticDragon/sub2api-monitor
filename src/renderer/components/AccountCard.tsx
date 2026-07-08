@@ -4,6 +4,7 @@ import { primaryUsage, sessionWindowRange, weeklyUtilization } from '../../share
 import { utilizationLevel, levelColorVar } from '../../shared/theme'
 import { PlatformChip } from './PlatformIcon'
 import { StatusBadge } from './StatusBadge'
+import { UsageRing } from './UsageRing'
 
 interface Props {
   account: Account
@@ -22,7 +23,8 @@ export function AccountCard({ account }: Props): JSX.Element {
   const window = sessionWindowRange(account)
   const sessionLabel =
     primary.kind === 'weekly' ? '7 日额度' : window !== '—' ? `会话 · ${window}` : '会话 · 5h 窗口'
-  const weekly = formatPercent(weeklyUtilization(account))
+  const weeklyFrac = weeklyUtilization(account)
+  const weekly = formatPercent(weeklyFrac)
   const isActive = account.status === 'active'
   const lastUsed = formatLastUsed(account.last_used_at, new Date())
   // 有使用记录时拼「…使用」（如「3分钟前使用」）；从未使用则原样展示
@@ -37,7 +39,14 @@ export function AccountCard({ account }: Props): JSX.Element {
       }}
     >
       <div className="flex items-center gap-2.5">
-        <PlatformChip platform={account.platform} />
+        <UsageRing
+          frac={weeklyFrac}
+          title={`${account.name} · 7日 ${weekly}`}
+          ariaLabel={`${account.name} 7日用量 ${weekly}`}
+          progressDataAttr="data-account-weekly-ring"
+        >
+          <PlatformChip platform={account.platform} size={28} glyph={14} radius={9} />
+        </UsageRing>
         <span
           className="min-w-0 flex-1 truncate text-[13.5px] font-extrabold"
           style={{ color: 'var(--s2a-text)' }}

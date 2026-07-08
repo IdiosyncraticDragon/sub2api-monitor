@@ -5,6 +5,22 @@
 
 ---
 
+## 2026-07-08 · iOS 伴侣 App 追齐当前功能设计
+
+### 做了什么
+- iOS Core 追齐桌面字段与接口：OpenAI/Codex 账号补拉 `/admin/accounts/{id}/usage`
+  的 active/passive 用量，`/admin/users` 分页读取并筛选当天使用用户，Dashboard 字段补全。
+- JWT 扫描改为只接受未过期 access token，并排除 refresh token；业务 `code=401` 映射为重新登录路径。
+- SwiftUI 主界面改为中文：连接面板、订阅监控 / 用户监控分段、外观设置；前台 30s 自动刷新，失败 30/60/120s 退避。
+- App Group 增加 UI 偏好：Clay / Latte / SandSage、浅色 / 深色、Widget 进度环 / 分段条 / 聚光泡。
+- Widget 快照改为最近使用 active 账户，保留 Today 摘要；文档同步 `/admin/users` 和 iOS 当前能力。
+
+### 验证
+- Windows 环境无 `swift` / `xcodebuild`，iOS SwiftPM 与 Xcode 构建需在 macOS 上跑。
+- 已在当前环境验证：`npm test` 145 绿、`npm run typecheck` 通过、`git diff --check` 通过。
+
+---
+
 ## 2026-06-28 · M0 脚手架 + M1 纯逻辑（TDD）
 
 ### 做了什么
