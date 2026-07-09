@@ -27,6 +27,7 @@ export interface ApiDeps {
   baseUrl: () => string
   fetchFn: typeof fetch
   getToken: () => string | null
+  refreshAccessToken?: () => Promise<string>
 }
 
 type UsageSource = 'active' | 'passive'
@@ -120,6 +121,14 @@ export class ApiService {
   constructor(private deps: ApiDeps) {}
 
   private async getJson<T>(path: string, params?: Record<string, string>): Promise<T> {
+    return this.getJsonWithRetry<T>(path, params, false)
+  }
+
+  private async getJsonWithRetry<T>(
+    path: string,
+    params: Record<string, string> | undefined,
+    didRefresh: boolean
+  ): Promise<T> {
     const url = new URL(this.deps.baseUrl() + path)
     if (params) {
       for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v)
@@ -131,6 +140,9 @@ export class ApiService {
 
     const resp = await this.deps.fetchFn(url.toString(), { method: 'GET', headers })
     if (!resp.ok) {
+      if (resp.status === 401 && (await this.tryRefresh(didRefresh))) {
+        return this.getJsonWithRetry<T>(path, params, true)
+      }
       throw new HttpError(resp.status, `HTTP ${resp.status}`)
     }
     const envelope = (await resp.json()) as ApiEnvelope<T>
@@ -138,9 +150,22 @@ export class ApiService {
       return unwrap(envelope)
     } catch (err) {
       if (err instanceof ApiError && err.code === 401) {
+        if (await this.tryRefresh(didRefresh)) {
+          return this.getJsonWithRetry<T>(path, params, true)
+        }
         throw new HttpError(401, err.message)
       }
       throw err
+    }
+  }
+
+  private async tryRefresh(didRefresh: boolean): Promise<boolean> {
+    if (didRefresh || !this.deps.refreshAccessToken) return false
+    try {
+      await this.deps.refreshAccessToken()
+      return true
+    } catch {
+      return false
     }
   }
 

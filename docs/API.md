@@ -8,7 +8,8 @@
 - **方式**：JWT Bearer Token。
 - **请求头**：`Authorization: Bearer <token>`
 - **Web 端存储**：站点版本会变化；本助手登录窗扫描 localStorage/sessionStorage 中的 JWT。
-- **续期**：401 时使用 refresh token 自动刷新（前端 axios 拦截器逻辑）。
+- **续期**：401 时使用 refresh token 自动刷新（Web 前端 axios 拦截器逻辑；桌面端
+  `AuthService.refreshAccessToken()` 同步实现，失败才回退登录窗）。
 
 ## Base URL
 

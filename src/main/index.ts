@@ -31,7 +31,13 @@ const credentialStore = new CredentialStore(electronKv, safeStorageCipher)
 // 服务器地址：环境变量优先（dev/CI），否则取设置窗保存的配置。
 const envOrigin = normalizeOrigin(process.env['SUB2API_ORIGIN'])
 const resolveOrigin = (): string | null => envOrigin ?? credentialStore.getServerOrigin()
-const auth = new AuthService(credentialStore)
+const auth = new AuthService(credentialStore, () => new Date(), {
+  baseUrl: () => {
+    const o = resolveOrigin()
+    return o ? apiBaseFrom(o) : ''
+  },
+  fetchFn: (...args) => fetch(...args)
+})
 const api = new ApiService({
   // 动态 base：服务器地址可在运行时通过设置窗变更
   baseUrl: () => {
@@ -39,7 +45,8 @@ const api = new ApiService({
     return o ? apiBaseFrom(o) : ''
   },
   fetchFn: (...args) => fetch(...args), // Electron(Node20) 内置 fetch
-  getToken: () => auth.getToken()
+  getToken: () => auth.getToken(),
+  refreshAccessToken: () => auth.refreshAccessToken()
 })
 
 let floatWindow: BrowserWindow | null = null
@@ -122,7 +129,7 @@ const poll = new PollService<Snapshot>({
     if (tray) setTrayUsage(tray, trayUsageFromAccount(snap.latest))
   },
   onError: (err) => {
-    // 401：凭证失效，清除并重新登录
+    // 401 到这里说明静默 refresh 已失败或重试后仍未授权，回退到登录窗。
     if (err instanceof HttpError && err.status === 401) {
       poll.stop()
       auth.clear()
@@ -318,12 +325,19 @@ function setupTray(): void {
   })
 }
 
-function boot(): void {
+async function boot(): Promise<void> {
   createFloatWindow()
   setupTray()
   if (!resolveOrigin()) showSetup()
   else if (auth.isAuthenticated()) startPolling()
-  else showLogin({ clearStaleCredentials: !!auth.getToken() })
+  else if (auth.getRefreshToken()) {
+    try {
+      await auth.refreshAccessToken()
+      startPolling()
+    } catch {
+      showLogin({ clearStaleCredentials: !!auth.getToken() })
+    }
+  } else showLogin({ clearStaleCredentials: !!auth.getToken() })
 }
 
 // ---- IPC ----
@@ -382,10 +396,10 @@ ipcMain.handle('ui:setPrefs', (_e, patch) => credentialStore.setUiPrefs(patch))
 app.whenReady().then(() => {
   // macOS：纯菜单栏应用，隐藏 dock 图标（对应 Windows 的 skipTaskbar）。
   if (process.platform === 'darwin') app.dock?.hide()
-  boot()
+  void boot()
   // dock 隐藏后 activate 基本不会触发；保留以兼容显式重新激活的场景。
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) boot()
+    if (BrowserWindow.getAllWindows().length === 0) void boot()
     else floatWindow?.show()
   })
 })

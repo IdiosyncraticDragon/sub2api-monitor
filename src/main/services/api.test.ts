@@ -17,11 +17,14 @@ function jsonResponse(body: unknown, init?: { ok?: boolean; status?: number }): 
 function makeService(opts: {
   fetchImpl: typeof fetch
   token?: string | null
+  getToken?: () => string | null
+  refreshAccessToken?: () => Promise<string>
 }): ApiService {
   return new ApiService({
     baseUrl: () => BASE,
     fetchFn: opts.fetchImpl,
-    getToken: () => opts.token ?? null
+    getToken: opts.getToken ?? (() => opts.token ?? null),
+    refreshAccessToken: opts.refreshAccessToken
   })
 }
 
@@ -235,6 +238,95 @@ describe('ApiService.getDashboardStats', () => {
     const fetchFn = vi.fn(async () => jsonResponse({ code: 401, message: 'unauthorized', data: null }))
     const svc = makeService({ fetchImpl: fetchFn, token: 'expired' })
     await expect(svc.getDashboardStats()).rejects.toBeInstanceOf(HttpError)
+  })
+
+  it('HTTP 401 后 refresh 成功则用新 token 重试原请求', async () => {
+    let token = 'expired'
+    const refreshAccessToken = vi.fn(async () => {
+      token = 'fresh'
+      return token
+    })
+    const fetchFn = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      const headers = init?.headers as Record<string, string>
+      if (headers.Authorization === 'Bearer expired') {
+        return jsonResponse({}, { ok: false, status: 401 })
+      }
+      return jsonResponse({
+        code: 0,
+        message: 'ok',
+        data: { today_tokens: 1, today_requests: 2, today_cost: 3, normal_accounts: 4 }
+      })
+    })
+    const svc = makeService({
+      fetchImpl: fetchFn,
+      getToken: () => token,
+      refreshAccessToken
+    })
+
+    const result = await svc.getDashboardStats()
+
+    expect(result.today_tokens).toBe(1)
+    expect(refreshAccessToken).toHaveBeenCalledTimes(1)
+    expect(fetchFn).toHaveBeenCalledTimes(2)
+    expect((fetchFn.mock.calls[1][1] as RequestInit).headers).toMatchObject({
+      Authorization: 'Bearer fresh'
+    })
+  })
+
+  it('business code 401 后 refresh 成功则重试原请求', async () => {
+    let token = 'expired'
+    const refreshAccessToken = vi.fn(async () => {
+      token = 'fresh'
+      return token
+    })
+    const fetchFn = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ code: 401, message: 'unauthorized', data: null }))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          code: 0,
+          message: 'ok',
+          data: { today_tokens: 1, today_requests: 2, today_cost: 3, normal_accounts: 4 }
+        })
+      )
+    const svc = makeService({
+      fetchImpl: fetchFn,
+      getToken: () => token,
+      refreshAccessToken
+    })
+
+    await expect(svc.getDashboardStats()).resolves.toMatchObject({ today_tokens: 1 })
+    expect(refreshAccessToken).toHaveBeenCalledTimes(1)
+    expect(fetchFn).toHaveBeenCalledTimes(2)
+  })
+
+  it('refresh 失败时最终抛 401', async () => {
+    const refreshAccessToken = vi.fn(async () => {
+      throw new Error('refresh failed')
+    })
+    const fetchFn = vi.fn(async () => jsonResponse({}, { ok: false, status: 401 }))
+    const svc = makeService({ fetchImpl: fetchFn, token: 'expired', refreshAccessToken })
+
+    await expect(svc.getDashboardStats()).rejects.toMatchObject({ status: 401 })
+    expect(refreshAccessToken).toHaveBeenCalledTimes(1)
+  })
+
+  it('重试后仍 401 不无限循环', async () => {
+    let token = 'expired'
+    const refreshAccessToken = vi.fn(async () => {
+      token = 'fresh'
+      return token
+    })
+    const fetchFn = vi.fn(async () => jsonResponse({}, { ok: false, status: 401 }))
+    const svc = makeService({
+      fetchImpl: fetchFn,
+      getToken: () => token,
+      refreshAccessToken
+    })
+
+    await expect(svc.getDashboardStats()).rejects.toMatchObject({ status: 401 })
+    expect(refreshAccessToken).toHaveBeenCalledTimes(1)
+    expect(fetchFn).toHaveBeenCalledTimes(2)
   })
 })
 
