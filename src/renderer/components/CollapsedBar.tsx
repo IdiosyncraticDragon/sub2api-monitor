@@ -1,7 +1,12 @@
 import { forwardRef, useState, type ReactNode } from 'react'
 import type { Account } from '../../shared/types'
 import { sessionUtilization, weeklyUtilization } from '../../shared/usage'
-import { utilizationLevel, levelColorVar, type CollapseStyle } from '../../shared/theme'
+import {
+  utilizationLevel,
+  levelColorVar,
+  type CollapseStyle,
+  type UsageWindow
+} from '../../shared/theme'
 import { PlatformChip } from './PlatformIcon'
 import { UsageRing } from './UsageRing'
 
@@ -12,6 +17,8 @@ interface Props {
   activeCount?: number
   /** 折叠迷你条样式：进度环 / 分段条 / 聚光泡 */
   style?: CollapseStyle
+  /** 主进度窗口：控制中心数值及聚光泡主进度条。 */
+  usageWindow?: UsageWindow
   /** 点击展开按钮回调 */
   onExpand: () => void
 }
@@ -67,7 +74,7 @@ const dash = (pctNum: number | null, circumference: number): string =>
 // 提示气泡（tip）为「绝对定位 + 截断」——不进入正常流，悬停切换文案不会改变窗口尺寸，
 // 因而不会触发「悬停→尺寸变化→鼠标错位→反复刷新」的抖动回环。
 export const CollapsedBar = forwardRef<HTMLDivElement, Props>(function CollapsedBar(
-  { accounts, activeCount, style = 'rings', onExpand },
+  { accounts, activeCount, style = 'rings', usageWindow = 'session', onExpand },
   ref
 ) {
   const items = toItems(accounts)
@@ -180,9 +187,11 @@ export const CollapsedBar = forwardRef<HTMLDivElement, Props>(function Collapsed
               </svg>
               <span
                 className="absolute inset-0 flex items-center justify-center text-[9px] font-extrabold"
-                style={{ color: it.session.color }}
+                style={{ color: (usageWindow === 'weekly' ? it.weekly : it.session).color }}
               >
-                {it.session.pctText === '—' ? '—' : it.session.pctNum}
+                {(usageWindow === 'weekly' ? it.weekly : it.session).pctText === '—'
+                  ? '—'
+                  : (usageWindow === 'weekly' ? it.weekly : it.session).pctNum}
               </span>
             </div>
           ))}
@@ -233,14 +242,18 @@ export const CollapsedBar = forwardRef<HTMLDivElement, Props>(function Collapsed
 
   // —— 聚光泡 ——
   const spot = items[Math.min(spotIdx, items.length - 1)]
+  const spotPrimary = usageWindow === 'weekly' ? spot.weekly : spot.session
+  const spotSecondary = usageWindow === 'weekly' ? spot.session : spot.weekly
+  const primaryLabel = usageWindow === 'weekly' ? '7日' : '5h'
+  const secondaryLabel = usageWindow === 'weekly' ? '5h' : '7日'
   return frame(
     <>
       {/* 图标 + 信息区：展示用（可拖动），不再承担展开点击 */}
       <div className="flex items-center gap-2.5">
         <UsageRing
-          frac={spot.weekly.frac}
-          title={`${spot.name} · 7日 ${spot.weekly.pctText}`}
-          ariaLabel={`${spot.name} 7日用量 ${spot.weekly.pctText}`}
+          frac={spotSecondary.frac}
+          title={`${spot.name} · ${secondaryLabel} ${spotSecondary.pctText}`}
+          ariaLabel={`${spot.name} ${secondaryLabel}用量 ${spotSecondary.pctText}`}
           progressDataAttr="data-spot-weekly-ring"
         >
           <PlatformChip platform={spot.platform} size={28} glyph={14} radius={9} />
@@ -250,14 +263,19 @@ export const CollapsedBar = forwardRef<HTMLDivElement, Props>(function Collapsed
             <span className="truncate text-[12px] font-extrabold" style={{ color: 'var(--s2a-text)' }}>
               {spot.name}
             </span>
-            <span className="text-[12px] font-extrabold" style={{ color: spot.session.color }}>
-              {spot.session.pctText}
+            <span
+              title={`${primaryLabel} ${spotPrimary.pctText}`}
+              className="text-[12px] font-extrabold"
+              style={{ color: spotPrimary.color }}
+            >
+              {spotPrimary.pctText}
             </span>
           </span>
           <span className="block h-[7px] overflow-hidden rounded-full" style={{ background: 'var(--s2a-track)' }}>
             <span
+              data-spot-primary-bar
               className="block h-full rounded-full"
-              style={{ width: `${spot.session.pctNum ?? 0}%`, background: spot.session.color }}
+              style={{ width: `${spotPrimary.pctNum ?? 0}%`, background: spotPrimary.color }}
             />
           </span>
         </span>
@@ -271,7 +289,7 @@ export const CollapsedBar = forwardRef<HTMLDivElement, Props>(function Collapsed
             aria-label={`聚焦 ${it.name}`}
             className="h-[9px] w-[9px] rounded-full"
             style={{
-              background: it.session.color,
+              background: (usageWindow === 'weekly' ? it.weekly : it.session).color,
               outline: i === Math.min(spotIdx, items.length - 1) ? '2px solid var(--s2a-text)' : 'none'
             }}
           />

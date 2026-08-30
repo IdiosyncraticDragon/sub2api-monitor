@@ -1,12 +1,15 @@
 import type { GroupView } from '../../shared/types'
 import { AccountCard } from './AccountCard'
+import type { UsageWindow } from '../../shared/theme'
 
 interface Props {
   groups: GroupView[]
+  usageWindow?: UsageWindow
+  onToggleUsageWindow?: () => void
 }
 
 // 按分组展示账户卡片；无数据时显示空态。
-export function AccountList({ groups }: Props): JSX.Element {
+export function AccountList({ groups, usageWindow, onToggleUsageWindow }: Props): JSX.Element {
   const total = groups.reduce((n, g) => n + g.accounts.length, 0)
   if (total === 0) {
     return (
@@ -38,7 +41,7 @@ export function AccountList({ groups }: Props): JSX.Element {
             </span>
           </header>
           {g.accounts.map((a) => (
-            <AccountCard key={a.id} account={a} />
+            <AccountCard key={a.id} account={a} usageWindow={usageWindow} onToggleUsageWindow={onToggleUsageWindow} />
           ))}
         </section>
       ))}

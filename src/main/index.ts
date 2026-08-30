@@ -9,9 +9,8 @@ import { openLoginWindow } from './windows/login'
 import { openSetupWindow } from './windows/setup'
 import { createTray, setTrayUsage } from './tray'
 import { groupByGroup, latestActiveAccount } from './core/transform'
+import { trayUsageFromAccount } from './core/trayUsage'
 import { apiBaseFrom, loginUrlFrom, normalizeOrigin } from './core/config'
-import { formatLastUsed, formatPercent } from '../shared/format'
-import { primaryUsage, sessionWindowRange } from '../shared/usage'
 import type {
   Account,
   DashboardStats,
@@ -57,6 +56,7 @@ let isCollapsed = credentialStore.getCollapsed()
 let latestGroups: GroupView[] = []
 let latestDashboard: DashboardSummary | null = null
 let latestUserUsage: UserUsageSummary | null = null
+let latestAccount: Account | null = null
 
 // 一轮轮询的快照：分组视图 + 今日汇总 + 用户监控 + 最近使用账户（后者仅供托盘）。
 interface Snapshot {
@@ -73,22 +73,6 @@ const toSummary = (s: DashboardStats): DashboardSummary => ({
   normalAccounts: s.normal_accounts,
   totalAccounts: s.total_accounts
 })
-
-// 由最近使用账户生成托盘显示：菜单栏显会话利用率%，tooltip 显账户/会话/时段/最近使用。
-const trayUsageFromAccount = (a: Account | null): { title: string; tooltip: string } => {
-  if (!a) return { title: '', tooltip: 'Sub2API Monitor' }
-  const usage = primaryUsage(a)
-  const pct = formatPercent(usage.frac)
-  const range = sessionWindowRange(a)
-  const group = a.groups?.[0]?.name
-  const last = formatLastUsed(a.last_used_at, new Date())
-  const label = usage.kind === 'weekly' ? '7日' : '会话'
-  const tooltip =
-    `${group ? group + ' · ' : ''}${a.name}\n` +
-    `${label} ${pct}${usage.kind === 'session' && range !== '—' ? ` (${range})` : ''}\n` +
-    `最近 ${last}`
-  return { title: pct === '—' ? '' : pct, tooltip }
-}
 
 // 拉取一轮快照：账户与今日汇总并行；汇总失败不影响账户展示（账户的 401 仍会触发重登）。
 const fetchSnapshot = async (): Promise<Snapshot> => {
@@ -119,6 +103,7 @@ const poll = new PollService<Snapshot>({
   fetcher: fetchSnapshot,
   onData: (snap) => {
     latestGroups = snap.groups
+    latestAccount = snap.latest
     if (snap.dashboard) latestDashboard = snap.dashboard
     if (snap.userUsage) latestUserUsage = snap.userUsage
     if (floatWindow && !floatWindow.isDestroyed()) {
@@ -126,7 +111,12 @@ const poll = new PollService<Snapshot>({
       if (snap.dashboard) floatWindow.webContents.send('dashboard:update', snap.dashboard)
       if (snap.userUsage) floatWindow.webContents.send('users:update', snap.userUsage)
     }
-    if (tray) setTrayUsage(tray, trayUsageFromAccount(snap.latest))
+    if (tray) {
+      setTrayUsage(
+        tray,
+        trayUsageFromAccount(snap.latest, credentialStore.getUiPrefs().usageWindow)
+      )
+    }
   },
   onError: (err) => {
     // 401 到这里说明静默 refresh 已失败或重试后仍未授权，回退到登录窗。
@@ -222,6 +212,7 @@ function clearSnapshotCache(): void {
   latestGroups = []
   latestDashboard = null
   latestUserUsage = null
+  latestAccount = null
   if (tray) setTrayUsage(tray, { title: '', tooltip: 'Sub2API Monitor' })
 }
 
@@ -364,6 +355,7 @@ ipcMain.handle('accounts:get', async () => {
   if (!auth.isAuthenticated()) return []
   const snap = await fetchSnapshot()
   latestGroups = snap.groups
+  latestAccount = snap.latest
   if (snap.dashboard) latestDashboard = snap.dashboard
   if (snap.userUsage) latestUserUsage = snap.userUsage
   return latestGroups
@@ -377,6 +369,7 @@ ipcMain.handle('dashboard:get', async () => {
   if (!auth.isAuthenticated()) return null
   const snap = await fetchSnapshot()
   latestGroups = snap.groups
+  latestAccount = snap.latest
   latestDashboard = snap.dashboard
   latestUserUsage = snap.userUsage
   return latestDashboard
@@ -386,12 +379,17 @@ ipcMain.handle('users:get', async () => {
   if (!auth.isAuthenticated()) return null
   const snap = await fetchSnapshot()
   latestGroups = snap.groups
+  latestAccount = snap.latest
   if (snap.dashboard) latestDashboard = snap.dashboard
   latestUserUsage = snap.userUsage
   return latestUserUsage
 })
 ipcMain.handle('ui:getPrefs', () => credentialStore.getUiPrefs())
-ipcMain.handle('ui:setPrefs', (_e, patch) => credentialStore.setUiPrefs(patch))
+ipcMain.handle('ui:setPrefs', (_e, patch) => {
+  const prefs = credentialStore.setUiPrefs(patch)
+  if (tray) setTrayUsage(tray, trayUsageFromAccount(latestAccount, prefs.usageWindow))
+  return prefs
+})
 
 app.whenReady().then(() => {
   // macOS：纯菜单栏应用，隐藏 dock 图标（对应 Windows 的 skipTaskbar）。

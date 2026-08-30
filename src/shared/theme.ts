@@ -8,19 +8,23 @@ export type ThemeKey = 'clay' | 'latte' | 'sandSage'
 export type Appearance = 'light' | 'dark'
 /** 折叠迷你条样式：进度环 / 分段条 / 聚光泡 */
 export type CollapseStyle = 'rings' | 'segments' | 'spotlight'
+/** 账户卡片主进度窗口：会话 5h 或近 7 日。 */
+export type UsageWindow = 'session' | 'weekly'
 
 /** 外观配置（持久化于 electron-store，键 ui.prefs） */
 export interface UiPrefs {
   theme: ThemeKey
   appearance: Appearance
   collapseStyle: CollapseStyle
+  usageWindow: UsageWindow
 }
 
 /** 默认外观：陶土 + 浅色 + 进度环 */
 export const DEFAULT_UI_PREFS: UiPrefs = {
   theme: 'clay',
   appearance: 'light',
-  collapseStyle: 'rings'
+  collapseStyle: 'rings',
+  usageWindow: 'session'
 }
 
 /** 主题选择器用的元数据：标签 + 三色样（用于设置面板的色块预览） */

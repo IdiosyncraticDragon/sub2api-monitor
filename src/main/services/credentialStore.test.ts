@@ -95,20 +95,22 @@ describe('CredentialStore', () => {
     expect(store.getUiPrefs()).toEqual({
       theme: 'clay',
       appearance: 'light',
-      collapseStyle: 'rings'
+      collapseStyle: 'rings',
+      usageWindow: 'session'
     })
   })
 
   it('UI 外观配置：部分更新与默认合并，返回完整配置', () => {
     const store = new CredentialStore(kv, fakeCipher())
     const next = store.setUiPrefs({ theme: 'latte', appearance: 'dark' })
-    expect(next).toEqual({ theme: 'latte', appearance: 'dark', collapseStyle: 'rings' })
+    expect(next).toEqual({ theme: 'latte', appearance: 'dark', collapseStyle: 'rings', usageWindow: 'session' })
     // 再次部分更新不丢失已存字段
     store.setUiPrefs({ collapseStyle: 'spotlight' })
     expect(store.getUiPrefs()).toEqual({
       theme: 'latte',
       appearance: 'dark',
-      collapseStyle: 'spotlight'
+      collapseStyle: 'spotlight',
+      usageWindow: 'session'
     })
   })
 })

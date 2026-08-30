@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { AccountCard } from './AccountCard'
 import type { Account } from '../../shared/types'
 
@@ -35,6 +35,15 @@ describe('AccountCard', () => {
     render(<AccountCard account={base} />)
     expect(screen.getByText('30%')).toBeInTheDocument()
     expect(screen.getByText(/14:00–19:00/)).toBeInTheDocument()
+  })
+
+  it('切换到 7d 后主进度显示 7 日额度，并通过账号图标触发切换', () => {
+    const onToggle = vi.fn()
+    render(<AccountCard account={base} usageWindow="weekly" onToggleUsageWindow={onToggle} />)
+    expect(screen.getByText('11%')).toBeInTheDocument()
+    expect(screen.getByText('7 日额度')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '切换5h主进度' }))
+    expect(onToggle).toHaveBeenCalledOnce()
   })
 
   it('OpenAI activate 账户用 codex_5h_reset_at 推导 5h 窗口时段', () => {

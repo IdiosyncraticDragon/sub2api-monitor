@@ -78,6 +78,10 @@ export default function App(): JSX.Element {
     void window.api.setCollapsed(next)
   }
 
+  const toggleUsageWindow = (): void => {
+    update({ usageWindow: prefs.usageWindow === 'session' ? 'weekly' : 'session' })
+  }
+
   if (collapsed) {
     return (
       <CollapsedBar
@@ -86,6 +90,7 @@ export default function App(): JSX.Element {
         accounts={recent}
         activeCount={activeCount}
         style={prefs.collapseStyle}
+        usageWindow={prefs.usageWindow}
         onExpand={() => toggleCollapsed(false)}
       />
     )
@@ -156,7 +161,7 @@ export default function App(): JSX.Element {
               加载中…
             </div>
           ) : (
-            <AccountList groups={groups} />
+            <AccountList groups={groups} usageWindow={prefs.usageWindow} onToggleUsageWindow={toggleUsageWindow} />
           )}
         </>
       )}

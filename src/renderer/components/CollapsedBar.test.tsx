@@ -36,6 +36,12 @@ describe('CollapsedBar', () => {
     expect(screen.getByTitle('账号A · 5h 30% · 7日 12%')).toBeInTheDocument()
   })
 
+  it('rings：7d 模式下中心数值同步为 7 日用量', () => {
+    render(<CollapsedBar accounts={two} style="rings" usageWindow="weekly" onExpand={() => {}} />)
+    expect(screen.getByText('12')).toBeInTheDocument()
+    expect(screen.getByText('42')).toBeInTheDocument()
+  })
+
   it('segments：每账户显示双层条，上面 5h、下面 7d', () => {
     const { container } = render(<CollapsedBar accounts={two} style="segments" onExpand={() => {}} />)
     expect(screen.getByText('当前2个active帐户')).toBeInTheDocument()
@@ -61,6 +67,20 @@ describe('CollapsedBar', () => {
     // 点第二个圆点 → 切到账号B
     fireEvent.click(screen.getByLabelText('聚焦 账号B'))
     expect(screen.getByText('账号B')).toBeInTheDocument()
+  })
+
+  it('spotlight：7d 模式下主数值和主进度条同步为 7 日用量', () => {
+    const { container } = render(
+      <CollapsedBar accounts={two} style="spotlight" usageWindow="weekly" onExpand={() => {}} />
+    )
+    expect(screen.getByTitle('7日 12%')).toHaveTextContent('12%')
+    expect(container.querySelector('[data-spot-primary-bar]')).toHaveStyle({ width: '12%' })
+    const dash = container
+      .querySelector('[data-spot-weekly-ring]')
+      ?.getAttribute('stroke-dasharray')
+      ?.split(' ')
+      .map(Number)
+    expect((dash?.[0] ?? 0) / (dash?.[1] ?? 1)).toBeCloseTo(0.3)
   })
 
   it('无账户 → 空态文案', () => {

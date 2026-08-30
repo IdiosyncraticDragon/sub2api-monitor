@@ -5,15 +5,18 @@ import { utilizationLevel, levelColorVar } from '../../shared/theme'
 import { PlatformChip } from './PlatformIcon'
 import { StatusBadge } from './StatusBadge'
 import { UsageRing } from './UsageRing'
+import type { UsageWindow } from '../../shared/theme'
 
 interface Props {
   account: Account
+  usageWindow?: UsageWindow
+  onToggleUsageWindow?: () => void
 }
 
-// 账户卡片（暖色设计）：平台芯片 + 名称 + 状态点；会话窗口利用率做主角的圆角进度条；
-// 底部展示最近使用（主）与 7 日利用率（次）。用量经 shared/usage 跨平台归一化为 0..1。
-export function AccountCard({ account }: Props): JSX.Element {
-  const primary = primaryUsage(account)
+// 账户卡片（暖色设计）：平台芯片 + 名称 + 状态点；可切换 5h/7d 主进度；
+// 底部展示最近使用与另一窗口的利用率。用量经 shared/usage 跨平台归一化为 0..1。
+export function AccountCard({ account, usageWindow = 'session', onToggleUsageWindow }: Props): JSX.Element {
+  const primary = usageWindow === 'weekly' ? { kind: 'weekly' as const, frac: weeklyUtilization(account) } : primaryUsage(account)
   const sessionFrac = primary.frac
   const level = utilizationLevel(sessionFrac)
   const levelColor = levelColorVar(level)
@@ -41,11 +44,19 @@ export function AccountCard({ account }: Props): JSX.Element {
       <div className="flex items-center gap-2.5">
         <UsageRing
           frac={weeklyFrac}
-          title={`${account.name} · 7日 ${weekly}`}
-          ariaLabel={`${account.name} 7日用量 ${weekly}`}
+          title={`${account.name} · 7日环 · 点击图标切换主进度（${usageWindow === 'session' ? '5h' : '7d'}）`}
+          ariaLabel={`${account.name} · 7日用量 ${weekly} · 点击图标切换主进度`}
           progressDataAttr="data-account-weekly-ring"
         >
-          <PlatformChip platform={account.platform} size={28} glyph={14} radius={9} />
+          <button
+            type="button"
+            onClick={onToggleUsageWindow}
+            aria-label={`切换${usageWindow === 'session' ? '7d' : '5h'}主进度`}
+            aria-pressed={usageWindow === 'weekly'}
+            className="no-drag flex cursor-pointer items-center justify-center rounded-[9px]"
+          >
+            <PlatformChip platform={account.platform} size={28} glyph={14} radius={9} />
+          </button>
         </UsageRing>
         <span
           className="min-w-0 flex-1 truncate text-[13.5px] font-extrabold"
