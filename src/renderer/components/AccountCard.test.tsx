@@ -78,6 +78,29 @@ describe('AccountCard', () => {
     expect(screen.getByText('7日 18%')).toBeInTheDocument()
   })
 
+  it('DeepSeek 按量付费账户展示余额与双币种明细，不展示套餐用量', () => {
+    render(
+      <AccountCard
+        account={{
+          ...base,
+          platform: 'deepseek',
+          extra: {
+            deepseek_balance: 12.3,
+            deepseek_balance_currency: 'CNY',
+            deepseek_balances: [
+              { currency: 'CNY', balance: 12.3 },
+              { currency: 'USD', balance: 1.5 }
+            ]
+          }
+        }}
+      />
+    )
+    expect(screen.getByText('按量付费余额')).toBeInTheDocument()
+    expect(screen.getByText('¥12.30')).toBeInTheDocument()
+    expect(screen.getByText('$1.50')).toBeInTheDocument()
+    expect(screen.queryByText('7日 11%')).not.toBeInTheDocument()
+  })
+
   it('展示 7 日利用率（次要信息）', () => {
     render(<AccountCard account={base} />)
     expect(screen.getByText('7日 11%')).toBeInTheDocument()

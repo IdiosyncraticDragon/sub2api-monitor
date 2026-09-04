@@ -1,6 +1,6 @@
 import type { Account } from '../../shared/types'
-import { formatLastUsed, formatPercent } from '../../shared/format'
-import { primaryUsage, sessionWindowRange, weeklyUtilization } from '../../shared/usage'
+import { formatBalance, formatLastUsed, formatPercent } from '../../shared/format'
+import { accountBalance, primaryUsage, sessionWindowRange, weeklyUtilization } from '../../shared/usage'
 import { utilizationLevel, levelColorVar } from '../../shared/theme'
 import { PlatformChip } from './PlatformIcon'
 import { StatusBadge } from './StatusBadge'
@@ -16,6 +16,7 @@ interface Props {
 // 账户卡片（暖色设计）：平台芯片 + 名称 + 状态点；可切换 5h/7d 主进度；
 // 底部展示最近使用与另一窗口的利用率。用量经 shared/usage 跨平台归一化为 0..1。
 export function AccountCard({ account, usageWindow = 'session', onToggleUsageWindow }: Props): JSX.Element {
+  const balance = accountBalance(account)
   const primary = usageWindow === 'weekly' ? { kind: 'weekly' as const, frac: weeklyUtilization(account) } : primaryUsage(account)
   const sessionFrac = primary.frac
   const level = utilizationLevel(sessionFrac)
@@ -32,6 +33,35 @@ export function AccountCard({ account, usageWindow = 'session', onToggleUsageWin
   const lastUsed = formatLastUsed(account.last_used_at, new Date())
   // 有使用记录时拼「…使用」（如「3分钟前使用」）；从未使用则原样展示
   const lastUsedText = account.last_used_at ? `${lastUsed}使用` : lastUsed
+
+  if (balance) {
+    const balanceText = formatBalance(balance.balance, balance.currency)
+    const details = balance.balances
+      .filter((entry) => entry.currency !== balance.currency || entry.balance !== balance.balance)
+      .map((entry) => formatBalance(entry.balance, entry.currency))
+    return (
+      <div
+        className="no-drag flex flex-col gap-2 rounded-[14px] px-3 py-2.5"
+        style={{ background: 'var(--s2a-card)', border: '1px solid var(--s2a-card-border)' }}
+      >
+        <div className="flex items-center gap-2.5">
+          <PlatformChip platform={account.platform} size={28} glyph={14} radius={9} />
+          <span className="min-w-0 flex-1 truncate text-[13.5px] font-extrabold" style={{ color: 'var(--s2a-text)' }}>
+            {account.name}
+          </span>
+          {isActive ? <span className="text-[11px] font-bold" style={{ color: 'var(--s2a-low)' }}>正常</span> : <StatusBadge status={account.status} />}
+        </div>
+        <div className="flex items-baseline justify-between">
+          <span className="text-[11px] font-semibold" style={{ color: 'var(--s2a-muted)' }}>按量付费余额</span>
+          <span className="text-[16px] font-extrabold tabular-nums" style={{ color: 'var(--s2a-text)' }}>{balanceText}</span>
+        </div>
+        <div className="flex items-center justify-between text-[11px] font-semibold" style={{ color: 'var(--s2a-muted)' }}>
+          <span>{lastUsedText}</span>
+          {details.length > 0 ? <span className="tabular-nums">{details.join(' · ')}</span> : null}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div

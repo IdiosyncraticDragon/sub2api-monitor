@@ -27,6 +27,10 @@ public enum AccountTransform {
         return platform.contains("openai") || platform.contains("codex") || platform.contains("gpt")
     }
 
+    public static func isDeepSeekAccount(_ account: Account) -> Bool {
+        (account.platform ?? "").lowercased().contains("deepseek")
+    }
+
     public static func recentActiveAccounts(_ accounts: [Account], limit: Int) -> [Account] {
         guard limit > 0 else { return [] }
         return accounts

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  accountBalance,
   primaryUsage,
   sessionUtilization,
   weeklyUtilization,
@@ -117,6 +118,38 @@ describe('primaryUsage', () => {
         })
       )
     ).toEqual({ kind: 'session', frac: undefined })
+  })
+})
+
+describe('accountBalance', () => {
+  it('DeepSeek 返回主余额与双币种明细', () => {
+    expect(
+      accountBalance(
+        acc({
+          platform: 'deepseek',
+          extra: {
+            deepseek_balance: 12.34,
+            deepseek_balance_currency: 'CNY',
+            deepseek_balances: [
+              { currency: 'CNY', balance: 12.34 },
+              { currency: 'USD', balance: 1.5 }
+            ]
+          }
+        })
+      )
+    ).toEqual({
+      balance: 12.34,
+      currency: 'CNY',
+      balances: [
+        { currency: 'CNY', balance: 12.34 },
+        { currency: 'USD', balance: 1.5 }
+      ]
+    })
+  })
+
+  it('非 DeepSeek 或无余额快照时不返回余额', () => {
+    expect(accountBalance(acc({ platform: 'openai', extra: { deepseek_balance: 10 } }))).toBeUndefined()
+    expect(accountBalance(acc({ platform: 'deepseek', extra: {} }))).toBeUndefined()
   })
 })
 

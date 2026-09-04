@@ -22,6 +22,16 @@ export function formatCost(n: number | undefined | null): string {
   return '$' + n.toFixed(2)
 }
 
+/** 账户余额：CNY 使用人民币符号，USD 使用美元符号，其它币种保留 ISO 代码。 */
+export function formatBalance(n: number | undefined | null, currency?: string): string {
+  if (typeof n !== 'number' || Number.isNaN(n)) return '—'
+  const amount = n.toFixed(2)
+  const code = currency?.trim().toUpperCase()
+  if (code === 'CNY') return `¥${amount}`
+  if (code === 'USD') return `$${amount}`
+  return code ? `${code} ${amount}` : amount
+}
+
 /** 利用率：0..1 的小数 → "30%"；缺失/非数字 → "—"。四舍五入到整数百分比。 */
 export function formatPercent(frac: number | undefined | null): string {
   if (typeof frac !== 'number' || Number.isNaN(frac)) return '—'

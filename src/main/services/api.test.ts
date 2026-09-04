@@ -163,6 +163,44 @@ describe('ApiService.getActiveAccounts', () => {
     expect(result[0].extra?.codex_5h_used_percent).toBe(61)
   })
 
+  it('DeepSeek 账号刷新按量付费余额，并保留双币种明细', async () => {
+    const items = [account({ id: 10, platform: 'deepseek' })]
+    const fetchFn = vi.fn(async (urlLike: string | URL | Request) => {
+      const url = new URL(urlLike as string)
+      if (url.pathname.endsWith('/admin/accounts')) {
+        return jsonResponse({ code: 0, message: 'ok', data: { items, total: 1 } })
+      }
+      if (url.pathname.endsWith('/admin/cn-providers/accounts/10/balance')) {
+        return jsonResponse({
+          code: 0,
+          message: 'ok',
+          data: {
+            balance: 12.3,
+            currency: 'CNY',
+            available: true,
+            balances: [
+              { currency: 'CNY', balance: 12.3 },
+              { currency: 'USD', balance: 1.5 }
+            ]
+          }
+        })
+      }
+      throw new Error(`unexpected URL ${url.toString()}`)
+    })
+    const result = await makeService({ fetchImpl: fetchFn }).getActiveAccounts()
+
+    expect(result[0].extra).toMatchObject({
+      deepseek_balance: 12.3,
+      deepseek_balance_currency: 'CNY',
+      deepseek_balance_available: true,
+      deepseek_balances: [
+        { currency: 'CNY', balance: 12.3 },
+        { currency: 'USD', balance: 1.5 }
+      ]
+    })
+    expect(fetchFn).toHaveBeenCalledTimes(2)
+  })
+
   it('OpenAI active usage 成功但无 5h 字段时清掉列表里的旧 5h 用量', async () => {
     const items = [
       account({

@@ -22,6 +22,28 @@ final class FormattingTests: XCTestCase {
         XCTAssertEqual(WatchdogFormat.percent(WatchdogFormat.sessionUtilization(extra)), "42%")
     }
 
+    func testDeepSeekBalanceFormatsPrimaryAndSecondaryCurrencies() {
+        let account = Account(
+            id: 3,
+            name: "deepseek",
+            status: "active",
+            platform: "deepseek",
+            extra: AccountExtra(
+                deepseekBalance: 12.3,
+                deepseekBalanceCurrency: "CNY",
+                deepseekBalances: [
+                    BalanceEntry(currency: "CNY", balance: 12.3),
+                    BalanceEntry(currency: "USD", balance: 1.5)
+                ]
+            )
+        )
+
+        let balance = WatchdogFormat.accountBalance(account)
+
+        XCTAssertEqual(WatchdogFormat.balance(balance?.balance, currency: balance?.currency), "¥12.30")
+        XCTAssertEqual(WatchdogFormat.balance(balance?.balances.last?.balance, currency: balance?.balances.last?.currency), "$1.50")
+    }
+
     func testOpenAIAccountIgnoresAnthropicUsageFields() {
         let account = Account(
             id: 1,

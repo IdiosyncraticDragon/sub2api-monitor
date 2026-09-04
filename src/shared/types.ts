@@ -51,10 +51,26 @@ export interface AccountExtra {
   codex_7d_used_percent?: number
   /** [OpenAI/Codex] 7 日窗口重置时间（ISO） */
   codex_7d_reset_at?: string
+  /** [DeepSeek] 按量付费账户的主余额。 */
+  deepseek_balance?: number
+  /** [DeepSeek] 主余额币种，如 CNY / USD。 */
+  deepseek_balance_currency?: string
+  /** [DeepSeek] 上游余额接口是否标记账户可用。 */
+  deepseek_balance_available?: boolean
+  /** [DeepSeek] 多币种余额明细。 */
+  deepseek_balances?: BalanceEntry[]
+  /** [DeepSeek] 余额快照更新时间（ISO）。 */
+  deepseek_balance_updated_at?: string
   /** 后端可能透传的订阅档位/计划名（如 free / plus） */
   subscription_type?: string
   plan?: string
   account_type?: string
+}
+
+/** 按量付费账户的单币种余额。 */
+export interface BalanceEntry {
+  currency: string
+  balance: number
 }
 
 /** 账户（字段为真实 API 子集，未列出的字段按需再补） */

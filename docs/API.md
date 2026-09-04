@@ -77,10 +77,15 @@
 |------|----------------------|---------------|------|
 | **Anthropic** | `extra.session_window_utilization` | `extra.passive_usage_7d_utilization` | **0..1 小数** |
 | **OpenAI/Codex** | `extra.codex_5h_used_percent` | `extra.codex_7d_used_percent` | **0..100 百分数** |
+| **DeepSeek** | 不适用 | 不适用 | **按量付费余额** |
 
 > OpenAI/Codex 账户**没有** `session_window_utilization`；其 `extra` 还含
 > `codex_5h_reset_at`/`codex_7d_reset_at`（ISO）、`codex_primary/secondary_used_percent` 等。
 > 统一取用见 `src/shared/usage.ts` 的 `sessionUtilization`/`weeklyUtilization`（归一化为 0..1）。
+
+> DeepSeek 是按量付费账号，不显示 5h/7d 套餐用量。助手会请求
+> `GET /admin/cn-providers/accounts/{id}/balance`，并展示返回的主余额及双币种明细；
+> 余额快照也会写入 `extra.deepseek_balance`、`deepseek_balance_currency` 与 `deepseek_balances`。
 
 > ⚠️ 单账户用量为**利用率**，列表接口**不含**单账户绝对 token 数；
 > 如需单账户今日 token，用 `POST /admin/accounts/today-stats/batch`。

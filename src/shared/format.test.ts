@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   compactNumber,
   formatTokens,
+  formatBalance,
   formatCost,
   formatPercent,
   formatWindowRange,
@@ -32,6 +33,14 @@ describe('formatCost', () => {
     expect(formatCost(32.86987)).toBe('$32.87')
     expect(formatCost(0)).toBe('$0.00')
     expect(formatCost(undefined)).toBe('—')
+  })
+})
+
+describe('formatBalance', () => {
+  it('按币种格式化余额', () => {
+    expect(formatBalance(12.3, 'CNY')).toBe('¥12.30')
+    expect(formatBalance(1.5, 'USD')).toBe('$1.50')
+    expect(formatBalance(2, 'EUR')).toBe('EUR 2.00')
   })
 })
 

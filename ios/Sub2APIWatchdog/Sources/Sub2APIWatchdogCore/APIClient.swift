@@ -36,7 +36,7 @@ public struct WatchdogAPIClient: Sendable {
             URLQueryItem(name: "page_size", value: "100")
         ]
         let list: FlexibleList<Account> = try await get(components.url!)
-        return try await refreshOpenAIUsage(AccountTransform.active(list.items))
+        return try await refreshAccountUsage(AccountTransform.active(list.items))
     }
 
     public func dashboardStats() async throws -> DashboardStats {
@@ -117,17 +117,38 @@ public struct WatchdogAPIClient: Sendable {
         return usageToExtra(payload, source: source)
     }
 
-    private func refreshOpenAIUsage(_ accounts: [Account]) async throws -> [Account] {
+    private func accountBalance(id: Int) async throws -> AccountExtra {
+        let url = apiBase
+            .appending(path: "admin")
+            .appending(path: "cn-providers")
+            .appending(path: "accounts")
+            .appending(path: String(id))
+            .appending(path: "balance")
+        let payload: BalanceResponse = try await get(url)
+        return AccountExtra(
+            deepseekBalance: payload.balance,
+            deepseekBalanceCurrency: payload.currency,
+            deepseekBalanceAvailable: payload.available,
+            deepseekBalances: payload.balances
+        )
+    }
+
+    private func refreshAccountUsage(_ accounts: [Account]) async throws -> [Account] {
         var refreshed: [Account] = []
         refreshed.reserveCapacity(accounts.count)
 
         for account in accounts {
-            guard AccountTransform.isOpenAIAccount(account) else {
+            guard AccountTransform.isOpenAIAccount(account) || AccountTransform.isDeepSeekAccount(account) else {
                 refreshed.append(account)
                 continue
             }
 
             do {
+                if AccountTransform.isDeepSeekAccount(account) {
+                    let balance = try await accountBalance(id: account.id)
+                    refreshed.append(account.replacingExtra(mergeBalance(current: account.extra, balance: balance)))
+                    continue
+                }
                 async let active = accountUsage(id: account.id, source: .active)
                 async let passive = accountUsage(id: account.id, source: .passive)
                 let extra = mergeOpenAIUsage(
@@ -154,6 +175,30 @@ public struct WatchdogAPIClient: Sendable {
             codex5hResetAt: active.codex5hResetAt,
             codex7dUsedPercent: passive.codex7dUsedPercent,
             codex7dResetAt: passive.codex7dResetAt,
+            deepseekBalance: current?.deepseekBalance,
+            deepseekBalanceCurrency: current?.deepseekBalanceCurrency,
+            deepseekBalanceAvailable: current?.deepseekBalanceAvailable,
+            deepseekBalances: current?.deepseekBalances,
+            passiveUsage7dReset: current?.passiveUsage7dReset,
+            passiveUsageSampledAt: current?.passiveUsageSampledAt,
+            subscriptionType: current?.subscriptionType,
+            plan: current?.plan,
+            accountType: current?.accountType
+        )
+    }
+
+    private func mergeBalance(current: AccountExtra?, balance: AccountExtra) -> AccountExtra {
+        AccountExtra(
+            sessionWindowUtilization: current?.sessionWindowUtilization,
+            passiveUsage7dUtilization: current?.passiveUsage7dUtilization,
+            codex5hUsedPercent: current?.codex5hUsedPercent,
+            codex5hResetAt: current?.codex5hResetAt,
+            codex7dUsedPercent: current?.codex7dUsedPercent,
+            codex7dResetAt: current?.codex7dResetAt,
+            deepseekBalance: balance.deepseekBalance,
+            deepseekBalanceCurrency: balance.deepseekBalanceCurrency,
+            deepseekBalanceAvailable: balance.deepseekBalanceAvailable,
+            deepseekBalances: balance.deepseekBalances,
             passiveUsage7dReset: current?.passiveUsage7dReset,
             passiveUsageSampledAt: current?.passiveUsageSampledAt,
             subscriptionType: current?.subscriptionType,
@@ -273,6 +318,13 @@ public struct WatchdogAPIClient: Sendable {
         ]
         return try await get(components.url!)
     }
+}
+
+private struct BalanceResponse: Decodable {
+    let balance: Double
+    let currency: String?
+    let available: Bool?
+    let balances: [BalanceEntry]?
 }
 
 public struct WatchdogSnapshot: Equatable, Sendable {

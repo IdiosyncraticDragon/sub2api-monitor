@@ -7,8 +7,8 @@ import type {
   TodayUser,
   UserUsageSummary
 } from '../../shared/types'
-import type { AccountExtra } from '../../shared/types'
-import { isOpenAiAccount } from '../../shared/usage'
+import type { AccountExtra, BalanceEntry } from '../../shared/types'
+import { isDeepSeekAccount, isOpenAiAccount } from '../../shared/usage'
 import { unwrap, extractItems, ApiError } from '../core/apiParse'
 import { filterActive } from '../core/transform'
 
@@ -116,6 +116,27 @@ function usageToExtra(payload: unknown, source: UsageSource): AccountExtra {
   }
 }
 
+function balanceToExtra(payload: unknown): AccountExtra {
+  const root = isRecord(payload) ? payload : {}
+  const balance = num(root.balance)
+  const currency = str(root.currency)
+  const available = typeof root.available === 'boolean' ? root.available : undefined
+  const balances = Array.isArray(root.balances)
+    ? root.balances.flatMap((entry): BalanceEntry[] => {
+        if (!isRecord(entry)) return []
+        const amount = num(entry.balance)
+        const code = str(entry.currency)
+        return amount === undefined || !code ? [] : [{ balance: amount, currency: code }]
+      })
+    : undefined
+  return {
+    deepseek_balance: balance,
+    deepseek_balance_currency: currency,
+    deepseek_balance_available: available,
+    deepseek_balances: balances
+  }
+}
+
 // 与后台交互的 HTTP 服务。依赖注入 fetch 与 token provider，便于单测。
 export class ApiService {
   constructor(private deps: ApiDeps) {}
@@ -178,7 +199,7 @@ export class ApiService {
     })
     // 防御性再过滤：即使后端忽略 status 过滤也只保留 active
     const accounts = filterActive(extractItems(data))
-    return this.refreshOpenAiUsage(accounts)
+    return this.refreshAccountUsage(accounts)
   }
 
   private async getAccountsPage(params: Record<string, string>): Promise<PaginatedResponse<Account> | Account[]> {
@@ -189,11 +210,21 @@ export class ApiService {
     return this.getJson<unknown>(`/admin/accounts/${id}/usage`, { source, force: 'true' })
   }
 
-  private async refreshOpenAiUsage(accounts: Account[]): Promise<Account[]> {
+  private async getAccountBalance(id: number): Promise<unknown> {
+    return this.getJson<unknown>(`/admin/cn-providers/accounts/${id}/balance`)
+  }
+
+  private async refreshAccountUsage(accounts: Account[]): Promise<Account[]> {
     const refreshed = await Promise.all(
       accounts.map(async (account) => {
-        if (!isOpenAiAccount(account)) return account
+        if (!isOpenAiAccount(account) && !isDeepSeekAccount(account)) return account
         try {
+          if (isDeepSeekAccount(account)) {
+            return {
+              ...account,
+              extra: { ...account.extra, ...balanceToExtra(await this.getAccountBalance(account.id)) }
+            }
+          }
           const [active, passive] = await Promise.all([
             this.getAccountUsage(account.id, 'active'),
             this.getAccountUsage(account.id, 'passive')

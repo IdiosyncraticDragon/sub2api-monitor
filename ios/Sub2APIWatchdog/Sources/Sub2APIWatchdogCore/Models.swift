@@ -99,6 +99,10 @@ public struct AccountExtra: Decodable, Equatable, Sendable {
     public let codex5hResetAt: String?
     public let codex7dUsedPercent: Double?
     public let codex7dResetAt: String?
+    public let deepseekBalance: Double?
+    public let deepseekBalanceCurrency: String?
+    public let deepseekBalanceAvailable: Bool?
+    public let deepseekBalances: [BalanceEntry]?
     public let passiveUsage7dReset: Double?
     public let passiveUsageSampledAt: String?
     public let subscriptionType: String?
@@ -112,6 +116,10 @@ public struct AccountExtra: Decodable, Equatable, Sendable {
         codex5hResetAt: String? = nil,
         codex7dUsedPercent: Double? = nil,
         codex7dResetAt: String? = nil,
+        deepseekBalance: Double? = nil,
+        deepseekBalanceCurrency: String? = nil,
+        deepseekBalanceAvailable: Bool? = nil,
+        deepseekBalances: [BalanceEntry]? = nil,
         passiveUsage7dReset: Double? = nil,
         passiveUsageSampledAt: String? = nil,
         subscriptionType: String? = nil,
@@ -124,6 +132,10 @@ public struct AccountExtra: Decodable, Equatable, Sendable {
         self.codex5hResetAt = codex5hResetAt
         self.codex7dUsedPercent = codex7dUsedPercent
         self.codex7dResetAt = codex7dResetAt
+        self.deepseekBalance = deepseekBalance
+        self.deepseekBalanceCurrency = deepseekBalanceCurrency
+        self.deepseekBalanceAvailable = deepseekBalanceAvailable
+        self.deepseekBalances = deepseekBalances
         self.passiveUsage7dReset = passiveUsage7dReset
         self.passiveUsageSampledAt = passiveUsageSampledAt
         self.subscriptionType = subscriptionType
@@ -138,11 +150,25 @@ public struct AccountExtra: Decodable, Equatable, Sendable {
         case codex5hResetAt = "codex_5h_reset_at"
         case codex7dUsedPercent = "codex_7d_used_percent"
         case codex7dResetAt = "codex_7d_reset_at"
+        case deepseekBalance = "deepseek_balance"
+        case deepseekBalanceCurrency = "deepseek_balance_currency"
+        case deepseekBalanceAvailable = "deepseek_balance_available"
+        case deepseekBalances = "deepseek_balances"
         case passiveUsage7dReset = "passive_usage_7d_reset"
         case passiveUsageSampledAt = "passive_usage_sampled_at"
         case subscriptionType = "subscription_type"
         case plan
         case accountType = "account_type"
+    }
+}
+
+public struct BalanceEntry: Decodable, Equatable, Sendable {
+    public let currency: String
+    public let balance: Double
+
+    public init(currency: String, balance: Double) {
+        self.currency = currency
+        self.balance = balance
     }
 }
 

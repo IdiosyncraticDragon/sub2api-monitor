@@ -1,4 +1,4 @@
-import type { Account, AccountExtra } from './types'
+import type { Account, AccountExtra, BalanceEntry } from './types'
 import { formatWindowRange, formatWindowRangeFromEnd } from './format'
 
 // 跨平台用量访问器（纯函数）：把不同平台的用量字段统一归一化为 0..1 利用率。
@@ -16,6 +16,30 @@ function isAccount(input: Account | AccountExtra | undefined): input is Account 
 export function isOpenAiAccount(account: Account): boolean {
   const p = (account.platform ?? '').toLowerCase()
   return p.includes('openai') || p.includes('codex') || p.includes('gpt')
+}
+
+export function isDeepSeekAccount(account: Account): boolean {
+  return (account.platform ?? '').toLowerCase().includes('deepseek')
+}
+
+export type AccountBalance = {
+  balance: number
+  currency?: string
+  balances: BalanceEntry[]
+}
+
+/** DeepSeek 按量付费余额；没有余额快照时返回 undefined。 */
+export function accountBalance(account: Account): AccountBalance | undefined {
+  if (!isDeepSeekAccount(account)) return undefined
+  const extra = account.extra
+  if (!extra || typeof extra.deepseek_balance !== 'number' || Number.isNaN(extra.deepseek_balance)) {
+    return undefined
+  }
+  const balances = (extra.deepseek_balances ?? []).filter(
+    (entry): entry is BalanceEntry =>
+      typeof entry?.balance === 'number' && !Number.isNaN(entry.balance) && typeof entry.currency === 'string'
+  )
+  return { balance: extra.deepseek_balance, currency: extra.deepseek_balance_currency, balances }
 }
 
 function extraFrom(input: Account | AccountExtra | undefined): AccountExtra | undefined {

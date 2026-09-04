@@ -405,6 +405,7 @@ private struct AccountCardView: View {
 
     private var session: Double? { WatchdogFormat.sessionUtilization(account) }
     private var weekly: Double? { WatchdogFormat.weeklyUtilization(account) }
+    private var balance: WatchdogFormat.AccountBalance? { WatchdogFormat.accountBalance(account) }
     private var levelColor: Color { palette.level(session) }
 
     var body: some View {
@@ -429,8 +430,29 @@ private struct AccountCardView: View {
                     .background(levelColor.opacity(0.12), in: Capsule())
             }
 
-            UsageBar(title: "会话 · \(WatchdogFormat.windowRange(account: account))", value: session, color: levelColor, palette: palette)
-            UsageBar(title: "7 日", value: weekly, color: palette.sage, palette: palette)
+            if let balance {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("按量付费余额")
+                    Spacer()
+                    Text(WatchdogFormat.balance(balance.balance, currency: balance.currency))
+                        .font(.title3.monospacedDigit().weight(.black))
+                        .foregroundStyle(palette.text)
+                }
+                .font(.caption.weight(.bold))
+                .foregroundStyle(palette.muted)
+
+                let details = balance.balances.filter {
+                    $0.currency != balance.currency || $0.balance != balance.balance
+                }
+                if !details.isEmpty {
+                    Text(details.map { WatchdogFormat.balance($0.balance, currency: $0.currency) }.joined(separator: " · "))
+                        .font(.caption.monospacedDigit().weight(.semibold))
+                        .foregroundStyle(palette.muted)
+                }
+            } else {
+                UsageBar(title: "会话 · \(WatchdogFormat.windowRange(account: account))", value: session, color: levelColor, palette: palette)
+                UsageBar(title: "7 日", value: weekly, color: palette.sage, palette: palette)
+            }
 
             HStack {
                 Text("最近使用")

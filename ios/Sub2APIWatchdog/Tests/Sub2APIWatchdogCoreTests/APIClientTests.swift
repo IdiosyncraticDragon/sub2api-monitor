@@ -104,6 +104,43 @@ final class APIClientTests: XCTestCase {
         XCTAssertEqual(account?.extra?.codex5hUsedPercent, 61)
     }
 
+    func testDeepSeekAccountRefreshesPayAsYouGoBalance() async throws {
+        let session = MockSession { request in
+            let url = request.url!
+            if url.path.hasSuffix("/admin/accounts") {
+                return ("""
+                {"code":0,"message":"ok","data":{"items":[
+                  {"id":9,"name":"DeepSeek","status":"active","platform":"deepseek"}
+                ],"total":1,"page":1,"page_size":100}}
+                """, 200)
+            }
+            if url.path.hasSuffix("/admin/cn-providers/accounts/9/balance") {
+                return ("""
+                {"code":0,"message":"ok","data":{"balance":12.3,"currency":"CNY","available":true,"balances":[
+                  {"currency":"CNY","balance":12.3},{"currency":"USD","balance":1.5}
+                ]}}
+                """, 200)
+            }
+            XCTFail("unexpected URL \(url.absoluteString)")
+            return (#"{"code":0,"message":"ok","data":{}}"#, 200)
+        }
+        let client = WatchdogAPIClient(
+            apiBase: URL(string: "https://agent.example.com/api/v1")!,
+            tokenProvider: { "abc" },
+            session: session
+        )
+
+        let account = try await client.activeAccounts().first
+
+        XCTAssertEqual(account?.extra?.deepseekBalance, 12.3)
+        XCTAssertEqual(account?.extra?.deepseekBalanceCurrency, "CNY")
+        XCTAssertEqual(account?.extra?.deepseekBalances, [
+            BalanceEntry(currency: "CNY", balance: 12.3),
+            BalanceEntry(currency: "USD", balance: 1.5)
+        ])
+        XCTAssertEqual(session.requests.count, 2)
+    }
+
     func testDashboardStatsDecodesEnvelope() async throws {
         let session = MockSession(data: """
         {"code":0,"message":"ok","data":{"today_tokens":1200,"today_requests":42,"today_cost":0.72,"normal_accounts":9,"total_accounts":10}}

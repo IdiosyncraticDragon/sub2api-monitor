@@ -1,6 +1,12 @@
 import Foundation
 
 public enum WatchdogFormat {
+    public struct AccountBalance: Equatable, Sendable {
+        public let balance: Double
+        public let currency: String?
+        public let balances: [BalanceEntry]
+    }
+
     public static func percent(_ value: Double?) -> String {
         guard let value else { return "—" }
         return "\(Int((value * 100).rounded()))%"
@@ -22,6 +28,28 @@ public enum WatchdogFormat {
     public static func cost(_ value: Double?) -> String {
         guard let value else { return "—" }
         return String(format: "$%.2f", value)
+    }
+
+    public static func balance(_ value: Double?, currency: String?) -> String {
+        guard let value else { return "—" }
+        switch currency?.trimmingCharacters(in: .whitespacesAndNewlines).uppercased() {
+        case "CNY": return String(format: "¥%.2f", value)
+        case "USD": return String(format: "$%.2f", value)
+        case let code?: return String(format: "%@ %.2f", code, value)
+        case nil: return String(format: "%.2f", value)
+        }
+    }
+
+    public static func accountBalance(_ account: Account) -> AccountBalance? {
+        guard
+            AccountTransform.isDeepSeekAccount(account),
+            let balance = account.extra?.deepseekBalance
+        else { return nil }
+        return AccountBalance(
+            balance: balance,
+            currency: account.extra?.deepseekBalanceCurrency,
+            balances: account.extra?.deepseekBalances ?? []
+        )
     }
 
     public static func windowRange(start: String?, end: String?) -> String {
