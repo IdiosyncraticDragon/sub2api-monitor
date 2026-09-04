@@ -6,6 +6,7 @@ import androidx.room.Database
 import androidx.room.Entity
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
+import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -14,7 +15,7 @@ import com.sub2api.watchdog.core.WatchdogSnapshot
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-@Entity(tableName = "watchdog_snapshot") data class SnapshotEntity(val id: Int = 1, val payload: String, val updatedAt: Long)
+@Entity(tableName = "watchdog_snapshot") data class SnapshotEntity(@PrimaryKey val id: Int = 1, val payload: String, val updatedAt: Long)
 @Dao interface SnapshotDao { @Query("SELECT * FROM watchdog_snapshot WHERE id = 1") fun observe(): Flow<SnapshotEntity?>; @Query("SELECT * FROM watchdog_snapshot WHERE id = 1") suspend fun get(): SnapshotEntity?; @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun save(value: SnapshotEntity); @Query("DELETE FROM watchdog_snapshot") suspend fun clear() }
 @Database(entities = [SnapshotEntity::class], version = 1, exportSchema = false) abstract class WatchdogDatabase : RoomDatabase() { abstract fun snapshots(): SnapshotDao }
 class SnapshotStore(private val dao: SnapshotDao, private val gson: Gson = Gson()) {
