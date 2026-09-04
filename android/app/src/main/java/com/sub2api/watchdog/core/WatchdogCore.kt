@@ -8,13 +8,15 @@ import java.time.format.DateTimeFormatter
 import kotlin.math.max
 
 object ServerConfig {
-    fun normalizeOrigin(input: String?): String? = try {
+    fun normalizeOrigin(input: String?): String? {
+        return try {
         var value = input?.trim().orEmpty()
         if (value.isEmpty()) return null
         if (!value.startsWith("http://", true) && !value.startsWith("https://", true)) value = "https://$value"
         val uri = URI(value)
         if (uri.host.isNullOrBlank() || uri.scheme !in setOf("http", "https")) null else URI(uri.scheme, null, uri.host, uri.port, null, null, null).toString()
-    } catch (_: Exception) { null }
+        } catch (_: Exception) { null }
+    }
     fun apiBase(origin: String) = "${origin.trimEnd('/')}/api/v1"
     fun loginUrl(origin: String) = "${origin.trimEnd('/')}/admin/"
 }

@@ -27,7 +27,14 @@ data class WatchdogUiState(val origin: String = "", val snapshot: WatchdogSnapsh
 
 class WatchdogViewModel(private val container: AppContainer) : ViewModel() {
     private val loading = MutableStateFlow(false); private val error = MutableStateFlow<String?>(null); private val authenticated = MutableStateFlow(false); private var polling: Job? = null
-    val state: StateFlow<WatchdogUiState> = combine(container.preferences.originFlow, container.snapshots.snapshots, container.preferences.widgetPreferences, loading, error, authenticated) { origin, snapshot, preferences, isLoading, failure, signedIn -> WatchdogUiState(origin, snapshot, preferences, signedIn, isLoading, failure) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), WatchdogUiState())
+    private val snapshotState = combine(
+        container.preferences.originFlow,
+        container.snapshots.snapshots,
+        container.preferences.widgetPreferences
+    ) { origin, snapshot, preferences -> Triple(origin, snapshot, preferences) }
+    val state: StateFlow<WatchdogUiState> = combine(snapshotState, loading, error, authenticated) { snapshotState, isLoading, failure, signedIn ->
+        WatchdogUiState(snapshotState.first, snapshotState.second, snapshotState.third, signedIn, isLoading, failure)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), WatchdogUiState())
     init { viewModelScope.launch { authenticated.value = container.credentials.loadAccessToken()?.let(Jwt::isUsableAccessToken) == true } }
     fun setOrigin(value: String) = viewModelScope.launch { container.preferences.setOrigin(value); error.value = null }
     fun acceptToken(token: String): Boolean { if (!Jwt.isUsableAccessToken(token)) { error.value = "未找到有效的登录凭证，请确认网页登录已完成。"; return false }; viewModelScope.launch { container.credentials.saveAccessToken(token); authenticated.value = true; RefreshWorker.schedule(container.appContext); refresh() }; return true }
