@@ -2,7 +2,7 @@
 
 适用目录：仓库中的 `android/`。本工程使用 Android Gradle Plugin 8.6.1、Kotlin 2.0.21，要求 **JDK 17**、Gradle 8.7 和 Android SDK Platform 35。最低运行系统为 Android 10（API 29）。
 
-> 当前工程不提交 Gradle Wrapper 二进制文件；首次按第 4 节生成 Wrapper。之后所有命令优先使用 `gradlew.bat`，避免接手机器的全局 Gradle 版本漂移。
+> 当前仓库尚未提交 Gradle Wrapper；GitHub Actions 使用 Gradle 8.7 验证 `testDebugUnitTest assembleDebug`。本地首次构建可按第 4 节生成 Wrapper，之后优先使用它以避免全局 Gradle 版本漂移。
 
 ## 1. 工具下载
 
@@ -193,6 +193,6 @@ APK 可用 Android SDK 的 `apksigner` 校验：
 
 ## 9. 当前接手基线
 
-- 工程路径：`android/`，当前未在此接手环境构建，因为本机没有 Android SDK、JDK 17 或 Gradle，且 Gradle 分发下载 TLS 中断。
-- 应先完成第 1-4 节，再执行第 5 节；只有 `testDebugUnitTest` 与 `lintDebug` 通过后才生成 APK。
-- Release 签名配置是刻意保留给发布负责人完成的密钥管理步骤，不能使用 Debug 密钥代替正式发布密钥。
+- 工程路径：`android/`；GitHub Release CI 使用 JDK 17、Gradle 8.7、Android SDK Platform 35，已验证 `testDebugUnitTest` 与 `assembleDebug`。
+- Release 附带的 `app-debug.apk` 是 debug 签名侧载包。正式生产分发必须使用单独保管的 release keystore，并完成 APK/AAB 签名验证。
+- 本地仍应在提交前运行 `testDebugUnitTest` 与 `lintDebug`；真机验收需覆盖登录、凭证恢复、刷新、Widget 和 401 回退。

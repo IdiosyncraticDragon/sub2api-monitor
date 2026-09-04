@@ -9,6 +9,7 @@ The iOS companion app is in `ios/Sub2APIWatchdog`.
 - Core module with API models, transforms, formatting, server config, API client, loader abstraction, JWT scanning, Keychain token storage, App Group widget snapshots, and shared UI preferences.
 - Chinese SwiftUI app with server origin input, WKWebView login/JWT scanning, Keychain token storage, subscription monitoring, user monitoring, dashboard totals, grouped active account list, pull-to-refresh, foreground auto-refresh with backoff, last refresh time, loading and error states.
 - OpenAI/Codex accounts refresh `/admin/accounts/{id}/usage` for active/passive usage so 5h and 7d percentages match the desktop app.
+- DeepSeek accounts refresh `/admin/cn-providers/accounts/{id}/balance` and display pay-as-you-go balances instead of subscription windows.
 - WidgetKit extension reads the latest App Group snapshot and supports rings, segments, and spotlight styles from the app appearance settings.
 - Xcode UI test target with launch smoke tests for the connection controls, segmented monitor views, and settings entry. UI tests launch with `--ui-testing-reset` so persisted server/token state does not leak across runs.
 - Unit tests cover active filtering, grouping, recent account selection, formatting, server URL normalization, request headers, envelope/list decoding, JWT expiry/refresh-token exclusion, user monitoring, widget preferences, and view model refresh/error/clear/login-token behavior.
@@ -37,5 +38,6 @@ xcodebuild -project Sub2APIWatchdog.xcodeproj -scheme Sub2APIWatchdog -destinati
 - Confirm the login sheet closes after finding a valid non-expired access JWT and the token persists across app relaunch via Keychain.
 - Confirm `订阅监控` shows Today totals and active account groups matching the admin backend.
 - Confirm OpenAI/Codex accounts show refreshed 5h/7d usage and reset-derived session windows.
+- Confirm DeepSeek accounts show the primary balance and any available currency details.
 - Confirm `用户监控` shows users whose last-used time falls on the device's local current day.
 - Confirm appearance settings update theme, light/dark mode, and Widget style; then add/refresh the Widget and confirm rings/segments/spotlight render from the same snapshot.

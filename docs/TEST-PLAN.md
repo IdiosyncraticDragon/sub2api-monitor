@@ -48,6 +48,16 @@ npm run test:cov    # 覆盖率（core 目标 ≥80%）
 npm run test:e2e    # Playwright（延后）
 ```
 
+## Android
+
+Android 伴侣应用位于 `android/`，使用 JDK 17、Gradle 8.7、Android SDK Platform 35：
+
+```bash
+gradle -p android testDebugUnitTest assembleDebug
+```
+
+Release CI 执行该命令并上传 `app-debug.apk`。Android 当前覆盖核心的服务器地址、JWT 可用性、账户分组/用量、DeepSeek 余额和今日用户筛选；真机仍需手动验证 WebView 登录、Keystore 恢复、WorkManager 与 Widget。
+
 ## Electron 替身约定
 - `vi.mock('electron')` 提供 `safeStorage.encryptString/decryptString`、`BrowserWindow` 假实现。
 - 服务以参数注入依赖（fetch、store、clock），避免直接耦合全局。

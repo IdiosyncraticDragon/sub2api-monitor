@@ -1,6 +1,6 @@
 # macOS 交接说明
 
-> 当前 v1.0 仅在 **Windows** 验证。本文件供后续开发者在 **macOS** 上接力构建、调试、打包。
+> Windows 与 Apple Silicon macOS 安装包均由 GitHub Release CI 构建。本文件聚焦 macOS 真机验证、签名和公证；当前公开包仍未签名/未公证。
 > 代码中所有平台相关分支统一以 `// TODO(macOS):` 标注，可全局搜索索引。
 
 ## 1. 环境准备
@@ -19,7 +19,7 @@ npm run typecheck
 ```bash
 npm run build:mac  # electron-vite build && electron-builder --mac
 ```
-- 在 `electron-builder.yml` 取消注释 `mac:` 段并补全 target（dmg/zip）、category、图标。
+- `electron-builder.yml` 已配置 arm64 `dmg/zip`、category、图标和菜单栏模式；Release workflow 在 Apple Silicon runner 构建。
 - 输出位于 `release/`。
 
 ## 4. 平台分支点（逐项核对）
@@ -40,10 +40,12 @@ npm run build:mac  # electron-vite build && electron-builder --mac
 - [ ] 登录一次 → 重启免登录（`safeStorage` Keychain 路径验证）。
 - [ ] 悬浮窗按分组展示 active 账户，字段正确。
 - [ ] 托盘显示/隐藏、刷新、退出正常。
-- [ ] `npm run build:mac` 产出 dmg 可安装运行。
+- [ ] `npm run build:mac` 产出 arm64 dmg/zip 可安装运行。
+- [ ] 未签名包按 README 的 Gatekeeper/xattr 指引可打开；正式分发前启用 Developer ID 签名与 notarization。
 
 ## 6. 未尽事项 / 远期
 - iOS：SwiftUI + WidgetKit + Keychain，复用本仓 `docs/API.md` 的端点与字段约定。
+- Android：Compose 伴侣应用位于 `android/`，其构建与签名说明见 `android/BUILD-HANDOFF.md`。
 - 数据模型校正：联调后核对 `usage` / `last_used_at` 结构，同步 `src/shared/types.ts`。
 
 ## 7. 关键文件索引

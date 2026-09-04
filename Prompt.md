@@ -17,7 +17,7 @@
 构建 **Sub2API Monitor**（包名 `sub2api-watchdog`）：一个 Electron 桌面助手，以无边框、置顶的悬浮窗，实时展示**可配置的** [Sub2API](https://github.com/Wei-Shaw/sub2api) 管理后台中**状态正常（active）**账户的状态/用量/最近使用，并汇总今日 Token 与请求数；含系统托盘，一次登录长期免登录。
 
 ### 技术栈
-electron-vite（main/preload/renderer 三进程）+ React 18 + TypeScript + TailwindCSS + Zustand；测试 Vitest + @testing-library/react（happy-dom）；打包 electron-builder。路径别名 `@shared/*`、`@renderer/*`（在 `electron.vite.config.ts` 与 `vitest.config.ts` 同步配置）。
+electron-vite（main/preload/renderer 三进程）+ React 18 + TypeScript + TailwindCSS + Zustand；测试 Vitest + @testing-library/react（happy-dom）；桌面打包 electron-builder。Android 10+ 伴侣应用在 `android/`，使用 Kotlin/Compose、JDK 17、Gradle 8.7、SDK 35；Release CI 执行 Android 单测并上传 debug APK。路径别名 `@shared/*`、`@renderer/*`（在 `electron.vite.config.ts` 与 `vitest.config.ts` 同步配置）。
 
 ### 架构（核心模式：core/services 分层 + 依赖注入）
 - `src/main/core/` — 纯函数、无副作用、有同目录 `*.test.ts`，业务逻辑落这里：
@@ -33,12 +33,12 @@ electron-vite（main/preload/renderer 三进程）+ React 18 + TypeScript + Tail
   `usage`（**跨平台用量归一化**）、`select`（`recentActiveAccounts`）。
 
 ### 数据流与认证
-- 轮询每轮取一份快照 `{ groups, dashboard, latest }`：并行请求 `/admin/accounts?status=active` 与 `/admin/dashboard/stats`（dashboard 失败吞掉，不影响账户；账户 401 → 清凭证、停轮询、重登）。成功后向渲染层推 `accounts:update` / `dashboard:update`；`latest`（最近使用的 active 账户）喂给托盘标题/tooltip。轮询 30s 间隔，失败指数退避 ×2、封顶 120s。
+- 轮询每轮取一份快照 `{ groups, dashboard, userUsage, latest }`：并行请求 `/admin/accounts?status=active`、`/admin/dashboard/stats` 与 `/admin/users`（dashboard/user 失败吞掉，不影响账户；账户 401 先单次 `/auth/refresh` 静默续期并重试，续期失败才清凭证、停轮询、重登）。成功后向渲染层推 `accounts:update` / `dashboard:update` / `users:update`；`latest`（最近使用的 active 账户）喂给托盘标题/tooltip。轮询 30s 间隔，失败指数退避 ×2、封顶 120s。
 - **无登录接口**：在独立持久会话的 BrowserWindow（`partition: 'persist:sub2api'`）打开**配置的站点**让用户登录一次，然后轮询页面存储并扫描任意 `eyJ…` JWT（站点已不再固定用 `localStorage.auth_token`）。token 经 safeStorage 加密落盘。
 - **服务器地址可配置**：首运弹设置窗（或托盘「设置服务器」），存 electron-store；`SUB2API_ORIGIN` 环境变量可覆盖（dev/CI）。由 origin 派生 API base=`${origin}/api/v1`、登录页=`${origin}/admin/`。设置窗用内联 HTML 表单 + 自定义 scheme 经 `will-navigate` 拦截读值（不引入额外构建入口）。
 
 ### 真实 API 字段模型（已联调，易踩坑）
-单账户用量是**利用率**且**因平台而异**：Anthropic 用 `extra.session_window_utilization` / `passive_usage_7d_utilization`（**0..1**）；OpenAI/Codex 用 `extra.codex_5h_used_percent` / `codex_7d_used_percent`（**0..100**）。统一经 `shared/usage` 归一化为 0..1。会话窗口时段在 `session_window_start/_end`；分组在 `groups[].name`（非顶层 `group`）。今日汇总取 `today_tokens` / `today_requests` / `today_cost` / `normal_accounts`。列表接口**无**单账户绝对 token 数。详见 `docs/API.md`。
+单账户用量是**利用率**且**因平台而异**：Anthropic 用 `extra.session_window_utilization` / `passive_usage_7d_utilization`（**0..1**）；OpenAI/Codex 用 `extra.codex_5h_used_percent` / `codex_7d_used_percent`（**0..100**）。统一经 `shared/usage` 归一化为 0..1。DeepSeek 是按量付费，调用 `/admin/cn-providers/accounts/{id}/balance` 展示余额与币种明细，不显示 5h/7d 套餐用量。会话窗口时段在 `session_window_start/_end`；分组在 `groups[].name`（非顶层 `group`）。今日汇总取 `today_tokens` / `today_requests` / `today_cost` / `normal_accounts`。列表接口**无**单账户绝对 token 数。详见 `docs/API.md`。
 
 ### UI（暖色圆润设计，见 ui-design/ 设计稿）
 悬浮窗（宽 320，圆角 20）：标题栏（小羊 logo + 设置⚙/刷新/折叠/隐藏）+ 汇总条（今日 Token / 请求 / 正常账户「X/总数」三栏竖分隔，今日花费作脚注）+ 分组账户卡。账户卡以**会话窗口利用率**为主角的圆角进度条 + 平台色芯片 + 状态点 + 最近使用（7日利用率作次要）。利用率分级=暖色交通灯：低=橄榄/中=蜂蜜/高=陶土红，阈值 0.65/0.8（`shared/theme.utilizationLevel`）。
@@ -58,14 +58,15 @@ TDD（Red→Green→Refactor），核心纯逻辑覆盖率 ≥80%。`npm test` /
 - **打包须与包管理器无关**：`electron.vite.config.ts` 的 main 用 `externalizeDepsPlugin({ exclude: ['electron-store'] })` 把 electron-store 打进主进程 bundle。否则 cnpm/pnpm 的 `.store` 符号链接布局会让 electron-builder 收不全依赖，装好后主进程抛 `Cannot find module 'electron-store'`。新增主进程运行时依赖时，要么同样 exclude 打进 bundle，要么确保用 npm 扁平布局打包。
 
 ### 已知阻塞/缺口
-- refresh-token 轮换是 stub，access token 过期即回退重登。
+- 桌面端已支持 access token 的 refresh-token 续期；Android/iOS 仍在重新登录路径上恢复过期会话。
 - 暂无 Playwright Electron E2E。
-- Windows 安装包/托盘/自启、macOS GUI 与打包均需人工真机验收（沙箱内 Electron GUI 无法启动）。
+- Windows 安装包/托盘/自启与 macOS GUI 仍需人工真机验收。macOS Release 包未签名/未公证；Android Release 的 `app-debug.apk` 为侧载测试包，生产分发需独立 release key。
 
 ---
 
 ## 更新日志
 
+- **2026-09-04**：公开 Android Compose 伴侣应用并在 Release CI 用 JDK 17/Gradle 8.7 执行单测、构建 debug APK；补齐 Room、Flow、Glance 编译问题。DeepSeek 桌面/Android/iOS 统一展示按量付费余额；Android WebView 登录限于配置服务器同源页面。
 - **2026-07-08**：iOS 伴侣 App 追齐当前桌面功能设计——中文界面、订阅/用户监控分段、OpenAI/Codex `/usage` 补拉、JWT 过期/refresh-token 过滤、前台 30s 自动刷新+退避、三主题×明暗、Widget 进度环/分段条/聚光泡偏好；文档同步 `/admin/users`。
 - **2026-06-30**：折叠态拖动与稳定性修复——整条背景即拖拽区（移除固定 ⋮⋮ 手柄，仅环/段/圆点/展开钮为 no-drag），聚光泡也可拖动；提示气泡改为「绝对定位 + 截断」，悬停切换文案不再改变窗口尺寸，消除「悬停→尺寸变化→鼠标错位→反复刷新」的抖动回环。
 - **2026-06-30**：折叠态迷你条宽高自适应内容——卡片用 `w-max`（环/段数量、聚光泡信息宽决定卡片宽），收敛阴影 + 测量容器留 padding 防裁切；主进程折叠初始尺寸优先用上次测量持久化的 collapsedBounds 宽高（避免按固定值闪一下），渲染层再按当前内容收紧。

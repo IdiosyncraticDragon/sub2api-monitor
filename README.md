@@ -4,8 +4,8 @@
 后台里**状态正常（active）**账户的额度用量、用量窗口与最近使用，并汇总今日 Token / 请求。
 一次登录，长期免登录；暖色圆润界面，三套主题、明暗可切；可折叠成迷你条挂在屏幕角落。
 
-> **平台状态**：Windows = v1.0 交付目标 ✅ ｜ macOS = 已支持（构建/接力见
-> [docs/HANDOVER-macOS.md](docs/HANDOVER-macOS.md)）｜ iOS 伴侣 App = 可手工验收使用。
+> **平台状态**：Windows、macOS（Apple Silicon）、Android Debug APK 均由 Release CI 构建；
+> iOS 伴侣 App 从源码在 Xcode 中运行。macOS 包尚未签名/公证，Android APK 为 debug 签名。
 
 ---
 
@@ -18,10 +18,11 @@
 5. [折叠模式](#5-折叠模式)
 6. [系统托盘](#6-系统托盘)
 7. [更换服务器 / 重新登录](#7-更换服务器--重新登录)
-8. [iOS 伴侣 App](#8-ios-伴侣-app)
-9. [隐私与安全](#9-隐私与安全)
-10. [常见问题（FAQ）](#10-常见问题faq)
-11. [从源码运行 / 参与开发](#11-从源码运行--参与开发)
+8. [Android 伴侣 App](#8-android-伴侣-app)
+9. [iOS 伴侣 App](#9-ios-伴侣-app)
+10. [隐私与安全](#10-隐私与安全)
+11. [常见问题（FAQ）](#11-常见问题faq)
+12. [从源码运行 / 参与开发](#12-从源码运行--参与开发)
 
 ---
 
@@ -33,18 +34,21 @@
 
 | 平台 | 文件 | 说明 |
 | --- | --- | --- |
-| Windows | `Sub2API Monitor Setup x.y.z.exe` | 安装版（NSIS） |
-| Windows | `Sub2API Monitor x.y.z.exe` | 免安装便携版（Portable） |
-| macOS | `Sub2API Monitor-x.y.z.dmg` | 拖入「应用程序」即可 |
-| macOS | `Sub2API Monitor-x.y.z-mac.zip` | 解压即用 |
+| Windows | `Sub2API.Monitor.Setup.x.y.z.exe` | 安装版（NSIS） |
+| Windows | `Sub2API.Monitor.x.y.z.exe` | 免安装便携版（Portable） |
+| macOS (Apple Silicon) | `Sub2API.Monitor-x.y.z-arm64.dmg` | 未签名磁盘映像 |
+| macOS (Apple Silicon) | `Sub2API.Monitor-x.y.z-arm64-mac.zip` | 未签名应用压缩包 |
+| Android 10+ | `app-debug.apk` | Debug 签名，适合侧载测试 |
 
-> **macOS 首次打开提示「无法验证开发者」**：应用未做苹果签名/公证，属正常现象。
-> 在 **访达** 里右键应用 →「打开」→ 再点「打开」一次即可；或到
-> **系统设置 → 隐私与安全性** 里点「仍要打开」。
+> **macOS 首次打开提示「已损坏 / 无法验证开发者」**：应用尚未做苹果签名/公证。
+> 先在访达右键应用选择「打开」，或到系统设置的「隐私与安全性」选择「仍要打开」。若仍显示“已损坏”，在终端执行
+> `xattr -dr com.apple.quarantine "/Applications/Sub2API Monitor.app"` 后再打开。
+
+> **Android APK** 为 CI 生成的 debug 包，不适用于应用商店或生产分发；安装时需允许该来源的侧载安装。
 
 ### 方式 B：从源码构建
 
-需要 Node.js 18+，详见 [第 10 节](#10-从源码运行--参与开发)。
+需要 Node.js 18+，详见 [第 12 节](#12-从源码运行--参与开发)。
 
 ---
 
@@ -63,7 +67,7 @@
 3. **开始监控**
    悬浮窗出现，开始每 30 秒自动刷新一次账户与今日汇总。把它拖到顺手的位置即可。
 
-> 之后再开机，只要凭证未过期就直接显示数据；凭证过期会自动再次弹出登录窗。
+> 之后再开机，只要凭证有效就直接显示数据。桌面端发现 access token 过期且存在 refresh token 时会先静默续期；续期失败才弹出登录窗。
 
 ---
 
@@ -104,6 +108,8 @@
 | 最近使用 | 该账户上次被调用的相对时间 |
 | 7日 | 近 7 日用量利用率（次要信息） |
 
+DeepSeek 账号为按量付费模式：卡片显示主余额与可用的多币种余额明细，不显示 5h/7d 套餐用量。
+
 **用量分级配色（暖色交通灯）**：
 
 | 利用率 | 颜色 | 含义 |
@@ -128,6 +134,7 @@
 | **主题** | 陶土 Clay（默认）· 拿铁 Latte · 沙砾 Sage —— 三套暖色配色，点色块切换 |
 | **外观** | 浅色 · 深色 |
 | **折叠态样式** | 进度环 · 分段条 · 聚光泡（见下一节） |
+| **主用量窗口** | 5h 会话 · 7 日；影响账户卡、折叠态与托盘主指标 |
 
 再点一次 ⚙ 收起设置，回到账户列表。
 
@@ -184,7 +191,18 @@
 
 ---
 
-## 8. iOS 伴侣 App
+## 8. Android 伴侣 App
+
+Android 10+ 伴侣 App 已包含在源码和每个 Release 的 `app-debug.apk` 中。它提供同一后台的订阅监控、用户监控、DeepSeek 余额、WebView 登录、离线快照和桌面小组件。
+
+- **安装**：下载 `app-debug.apk`，允许侧载后安装；该包为 debug 签名，仅供测试。
+- **安全**：访问 token 通过 Android Keystore 加密保存；Widget 只读取本地 Room 快照，不保存 token。
+- **登录**：WebView 仅在配置的 Sub2API 服务端同源页面中导航和扫描登录态。
+- **从源码构建**：详见 [android/README.md](android/README.md) 和 [android/BUILD-HANDOFF.md](android/BUILD-HANDOFF.md)。
+
+---
+
+## 9. iOS 伴侣 App
 
 iOS 端是原生 SwiftUI 伴侣 App，用来在手机或模拟器上查看同一套 Sub2API active 账户、今日汇总、OpenAI/Codex 用量窗口和当天使用用户。它沿用桌面端暖色主题体系，并提供 WidgetKit 小组件预览最近使用 active 账户的会话用量。
 
@@ -222,7 +240,7 @@ iOS 端不再提供“直接粘贴 token”的入口；token 获取、保存和�
 
 - **连接面板**：服务器地址、网页登录入口、重新登录、清除登录态。
 - **订阅监控**：今日 token、请求数、花费、正常账户数，以及按 `groups[0].name` 分组的 active 账户卡片。
-- **账户卡片**：包含平台、状态、5 小时会话用量、7 日用量、最近使用和会话窗口；OpenAI/Codex 会额外补拉 `/admin/accounts/{id}/usage` 以显示最新 5h/7d 百分比。
+- **账户卡片**：包含平台、状态、5 小时会话用量、7 日用量、最近使用和会话窗口；OpenAI/Codex 会额外补拉 `/admin/accounts/{id}/usage` 以显示最新 5h/7d 百分比；DeepSeek 显示按量付费余额与多币种明细。
 - **用户监控**：读取 `/admin/users`，按设备本地日期筛选今天使用过的用户并按最近使用排序。
 - **外观设置**：陶土 Clay / 拿铁 Latte / 沙砾 Sage、浅色 / 深色、Widget 样式（进度环 / 分段条 / 聚光泡）。
 - **刷新**：右上角刷新按钮和下拉刷新会重新拉取账户、Dashboard 与用户监控；App 前台每 30 秒自动刷新，失败时指数退避。
@@ -235,23 +253,23 @@ iOS 小组件使用桌面折叠态的视觉主题：进度环、分段条、聚�
 
 ---
 
-## 9. 隐私与安全
+## 10. 隐私与安全
 
 - **凭证只存在你本机**：登录凭证经操作系统安全存储**加密落盘**
-  （Windows = DPAPI，macOS = 钥匙串 Keychain，Linux = libsecret，iOS = Keychain），不是明文。
+  （Windows = DPAPI，macOS = 钥匙串 Keychain，Linux = libsecret，iOS = Keychain，Android = Android Keystore），不是明文。
 - **不上传任何数据**：应用只与你**自己配置的** Sub2API 后台通信，不向任何第三方发送数据。
 - 服务器地址等非敏感配置以明文存于本地配置文件。
 
 ---
 
-## 10. 常见问题（FAQ）
+## 11. 常见问题（FAQ）
 
 **Q：悬浮窗显示「暂无正常账户」或一直「加载中」？**
 A：先点 ⟳ 刷新。若仍为空，确认后台确有 active 账户、服务器地址正确、网络可达；
 必要时托盘「设置服务器」重填地址，或等待自动弹出的登录窗重新登录。
 
 **Q：提示要重新登录 / 突然弹出登录窗？**
-A：登录凭证过期了，重新登录一次即可（凭证会再次加密保存）。
+A：桌面端会先尝试用已保存的 refresh token 自动续期；只有 refresh token 缺失、续期失败或服务器仍返回未授权时，才需要重新登录一次。
 
 **Q：把窗口 ✕ 关掉后找不到了？**
 A：没有退出，只是隐藏了。点托盘图标（Windows 单击 / macOS 单击弹菜单→显示）即可重新呼出。
@@ -260,7 +278,10 @@ A：没有退出，只是隐藏了。点托盘图标（Windows 单击 / macOS �
 A：在迷你条任意空白处拖动即可移动；点 ⤢ 展开回主窗。展开/折叠位置是分别记忆的。
 
 **Q：macOS 提示「已损坏 / 无法验证开发者」打不开？**
-A：应用未签名公证。右键应用 →「打开」，或系统设置→隐私与安全性→「仍要打开」。
+A：应用未签名公证。右键应用 →「打开」，或系统设置→隐私与安全性→「仍要打开」。若仍被隔离，在终端执行 `xattr -dr com.apple.quarantine "/Applications/Sub2API Monitor.app"`。
+
+**Q：Android 的 `app-debug.apk` 能直接用于正式发布吗？**
+A：不能。它是 CI 生成的 debug 签名侧载包，用于体验和测试；应用商店或生产分发需要独立管理 release keystore 并生成签名 APK/AAB。
 
 **Q：主题/外观改了下次还在吗？**
 A：在。所有外观设置都会自动保存，下次启动沿用。
@@ -270,7 +291,7 @@ A：这是模拟器/本地包缺少 Keychain entitlement。请用 Xcode 正常 R
 
 ---
 
-## 11. 从源码运行 / 参与开发
+## 12. 从源码运行 / 参与开发
 
 需要 Node.js 18+。
 
@@ -279,6 +300,7 @@ npm install        # 安装依赖
 npm run dev        # 开发模式（热更新）
 npm run build:win  # 打包 Windows 安装包 → release/
 npm run build:mac  # 打包 macOS（dmg/zip，需在 macOS 上构建）→ release/
+gradle -p android testDebugUnitTest assembleDebug  # Android（需 JDK 17、SDK 35）
 ```
 
 > 开发时可用环境变量覆盖服务器地址：复制 `.env.example` 为 `.env`，或
@@ -290,4 +312,4 @@ npm run build:mac  # 打包 macOS（dmg/zip，需在 macOS 上构建）→ relea
 - [贡献指南](CONTRIBUTING.md) ｜ [LICENSE](LICENSE)（MIT）
 - [构建提示词](Prompt.md) — 一步到位重建本项目的自维护 prompt
 - [设计文档](docs/DESIGN.md) ｜ [API 摘要](docs/API.md) ｜ [测试计划](docs/TEST-PLAN.md) ｜ [开发日志](docs/DEVLOG.md)
-- [macOS 交接](docs/HANDOVER-macOS.md) ｜ [iOS App](ios/Sub2APIWatchdog/README.md)
+- [macOS 交接](docs/HANDOVER-macOS.md) ｜ [Android App](android/README.md) ｜ [iOS App](ios/Sub2APIWatchdog/README.md)

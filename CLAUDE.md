@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Sub2API Monitor** — an Electron desktop helper that shows a frameless always-on-top floating window listing **active** accounts (status, usage, last-used) from a configurable [Sub2API](https://github.com/Wei-Shaw/sub2api) admin backend. Log in once, stay logged in.
 
-Platform status: **Windows is the v1.0 delivery target**. macOS is a later handoff (see `docs/HANDOVER-macOS.md`); platform-divergent spots are marked with `TODO(macOS)` comments in code — grep for them when porting.
+Platform status: Windows and Apple Silicon macOS packages are built by Release CI; macOS artifacts remain unsigned/unnotarized. Android 10+ is a Compose companion app in `android/`, built and unit-tested by Release CI as a debug APK. iOS remains a SwiftUI companion app built from source on macOS/Xcode.
 
 ## Commands
 
@@ -17,6 +17,8 @@ npm run test:watch   # vitest watch (TDD)
 npm run test:cov     # coverage (text + html)
 npm run typecheck    # tsc --noEmit
 npm run build:win    # build + electron-builder --win → release/
+npm run build:mac    # build + electron-builder --mac → release/
+# Android: gradle -p android testDebugUnitTest assembleDebug (JDK 17 + SDK 35)
 ```
 
 Run a single test file or filter by name:
@@ -43,24 +45,24 @@ When adding logic, push pure parts down into `core/` and keep Electron-specific 
 
 ### Data flow
 
-1. `PollService` (`poll.ts`) drives a `setTimeout` chain: 30s interval on success, exponential backoff (×2, capped 120s) on failure, reset on next success. It calls `fetchGroups = groupByGroup(api.getActiveAccounts())`.
-2. On new data → `floatWindow.webContents.send('accounts:update', groups)`.
-3. On a `401` (`HttpError`) → clear credentials, stop polling, reopen login window.
+1. `PollService` (`poll.ts`) drives a `setTimeout` chain: 30s interval on success, exponential backoff (×2, capped 120s) on failure, reset on next success. A snapshot fetches active accounts, dashboard stats, and today’s users.
+2. On new data → `floatWindow.webContents.send('accounts:update' | 'dashboard:update' | 'users:update', ...)`.
+3. On a `401` (`HttpError`), `ApiService` first attempts a single refresh-token exchange and retries the request. Only a failed refresh/retry clears credentials, stops polling, and reopens login.
 4. Renderer subscribes via `window.api.onAccountsUpdate(...)` and can pull cache with `getAccounts()` / force `refresh()`.
 
 ### Auth flow (no API login endpoint)
 
-There is no programmatic login. `windows/login.ts` opens the configured real site in an isolated persistent-session BrowserWindow (`partition: 'persist:sub2api'`), lets the user log in, then scans localStorage/sessionStorage for JWT-looking values via `executeJavaScript`. Extracted token → `AuthService.setTokens` → encrypted by `CredentialStore`. `AuthService.isAuthenticated()` checks JWT expiry locally. (Refresh-token rotation is stubbed — see `auth.ts`.)
+There is no programmatic password login. `windows/login.ts` opens the configured real site in an isolated persistent-session BrowserWindow (`partition: 'persist:sub2api'`), lets the user log in, then scans localStorage/sessionStorage for JWT-looking values via `executeJavaScript`. Extracted tokens go through `AuthService.setTokens` and are encrypted by `CredentialStore`. `AuthService` uses `/auth/refresh` to refresh an expired access token when a refresh token is available.
 
 ### IPC contract
 
-The renderer↔main API surface is a single typed interface: `ExposedApi` in `src/shared/types.ts`. `preload/index.ts` implements it over `ipcRenderer.invoke`/`on`; `main/index.ts` registers the matching `ipcMain.handle` channels (`accounts:get`, `accounts:refresh`, `dashboard:get`, `auth:*`, `window:hide`) and the `accounts:update` / `dashboard:update` push events. **Changing the contract means editing all three in sync.**
+The renderer↔main API surface is a single typed interface: `ExposedApi` in `src/shared/types.ts`. `preload/index.ts` implements it over `ipcRenderer.invoke`/`on`; `main/index.ts` registers the matching `ipcMain.handle` channels (`accounts:get`, `accounts:refresh`, `dashboard:get`, `users:get`, `auth:*`, `window:hide`) and the `accounts:update` / `dashboard:update` / `users:update` push events. **Changing the contract means editing all three in sync.**
 
-The poll fetches a `Snapshot { groups, dashboard, latest }` each tick (accounts + `/admin/dashboard/stats` in parallel; dashboard failure is swallowed so account 401 still drives re-login). `latest` (most-recently-used active account, via `core/transform.latestActiveAccount`) feeds the tray usage display (`tray.setTrayUsage`).
+The poll fetches a `Snapshot { groups, dashboard, userUsage, latest }` each tick (accounts, dashboard, and `/admin/users` in parallel; optional dashboard/user failures are swallowed while account 401 still drives re-login). `latest` feeds the tray usage display (`tray.setTrayUsage`).
 
 ## UI theme system
 
-The renderer uses a **warm rounded design** (see `ui-design/` handoff). Theming is **CSS-variable driven**, not Tailwind `dark:`: three themes (`clay`/`latte`/`sandSage`) × light/dark are defined as `--s2a-*` variable blocks in `src/renderer/styles/globals.css`, switched by two attributes on `<html>` (`data-theme`, `data-mode`). Components reference `var(--s2a-*)` only — **adding a theme = one CSS selector block + one entry in `shared/theme.ts` `THEMES`**, no component edits. Pure theme metadata/levels live in `shared/theme.ts` (`UiPrefs`, `THEMES`, `COLLAPSE_STYLES`, `utilizationLevel`). `hooks/useTheme` loads persisted prefs, applies the attributes, and writes back via `ui:setPrefs`. Appearance is explicit **light/dark** (no system-follow). Collapsed mini-bar has 3 selectable styles (`collapseStyle`: rings/segments/spotlight). Prefs persist in electron-store key `ui.prefs` (merged with `DEFAULT_UI_PREFS`).
+The renderer uses a **warm rounded design** (see `ui-design/` handoff). Theming is **CSS-variable driven**, not Tailwind `dark:`: three themes (`clay`/`latte`/`sandSage`) × light/dark are defined as `--s2a-*` variable blocks in `src/renderer/styles/globals.css`, switched by two attributes on `<html>` (`data-theme`, `data-mode`). Components reference `var(--s2a-*)` only — **adding a theme = one CSS selector block + one entry in `shared/theme.ts` `THEMES`**, no component edits. Pure theme metadata/levels live in `shared/theme.ts` (`UiPrefs`, `THEMES`, `COLLAPSE_STYLES`, `UsageWindow`, `utilizationLevel`). `hooks/useTheme` loads persisted prefs, applies the attributes, and writes back via `ui:setPrefs`. Appearance is explicit **light/dark** (no system-follow). Collapsed mini-bar has 3 selectable styles (`collapseStyle`: rings/segments/spotlight); `usageWindow` controls the 5h/7d primary metric on cards, collapsed views, and tray text. Prefs persist in electron-store key `ui.prefs` (merged with `DEFAULT_UI_PREFS`).
 
 ## Testing
 
@@ -68,7 +70,7 @@ Vitest with `happy-dom` environment globally (`globals: true`); `src/test/setup.
 
 ## API field model (verified 2026-06-29)
 
-`Account` in `src/shared/types.ts` is now modeled against **real** `/admin/accounts` responses. Key reality vs the old assumptions: per-account usage is **utilization ratios** (`extra.session_window_utilization`, `extra.passive_usage_7d_utilization`, both 0..1) plus a session window time range (`session_window_start/_end`), **not** a `{used, limit}` object; and group is `groups[].name`, **not** a top-level `group` string. The list endpoint has **no absolute per-account token count** (use `/admin/accounts/today-stats/batch` for that). Dashboard totals come from `/admin/dashboard/stats` (`today_tokens`, `today_requests`, `today_cost`, `normal_accounts`). Formatters live in `shared/format.ts` (`formatPercent`, `formatWindowRange`, `formatTokens`, `formatCost`, `formatLastUsed`). See `docs/API.md` for the full field tables.
+`Account` in `src/shared/types.ts` is modeled against real `/admin/accounts` responses. Anthropic usage uses 0..1 utilization ratios; OpenAI/Codex uses 0..100 `codex_5h_used_percent` / `codex_7d_used_percent`; DeepSeek is pay-as-you-go and uses `extra.deepseek_balance` plus optional currency details from its balance endpoint. Groups are `groups[].name`, not a top-level `group`. Dashboard totals come from `/admin/dashboard/stats`; user monitoring comes from `/admin/users`. See `docs/API.md` for complete field tables.
 
 Server origin is configurable via first-run setup, tray "设置服务器", or `SUB2API_ORIGIN` for dev/CI. The live site no longer reliably stores JWTs at `localStorage.auth_token`, so login scans all local/session storage values for `eyJ…` JWTs.
 
@@ -78,4 +80,4 @@ Server origin is configurable via first-run setup, tray "设置服务器", or `S
 
 ## Further docs
 
-`docs/DESIGN.md` (requirements/design), `docs/API.md` (backend endpoints), `docs/TEST-PLAN.md` (TDD plan), `docs/DEVLOG.md` (decisions/gotchas), `docs/HANDOVER-macOS.md` (porting checklist), `Prompt.md` (one-shot build prompt).
+`docs/DESIGN.md` (requirements/design), `docs/API.md` (backend endpoints), `docs/TEST-PLAN.md` (TDD plan), `docs/DEVLOG.md` (decisions/gotchas), `docs/HANDOVER-macOS.md` (macOS checklist), `android/README.md` and `android/BUILD-HANDOFF.md` (Android), `Prompt.md` (one-shot build prompt).

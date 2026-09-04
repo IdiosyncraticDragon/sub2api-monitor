@@ -35,8 +35,10 @@
 | `/admin/accounts/today-stats/batch` | POST | 批量今日统计 | body: `{ account_ids: number[] }` |
 | `/admin/groups` | GET | 分组列表 | `status=active`、`page`、`page_size` |
 | `/admin/users` | GET | 用户列表（用于今日使用用户监控） | `page`、`page_size` |
+| `/auth/refresh` | POST | 使用 refresh token 换取新的 access token | body: `{ refresh_token }` |
 
 > 本助手默认请求：`GET /admin/accounts?status=active&page=1&page_size=100`、`GET /admin/dashboard/stats`。
+> 桌面端遇到 401 且本地存在 refresh token 时，会先调用 `POST /auth/refresh` 并用新 access token 重试原请求；续期失败才清理凭证并回到网页登录。
 
 ## 仪表盘字段（`GET /admin/dashboard/stats` → `data`，已联调核对 2026-06-29）
 
@@ -93,7 +95,7 @@
 
 ## 用户字段（`GET /admin/users` → `data.items[]`）
 
-桌面端与 iOS 端的“用户监控”只做当天使用过的用户摘要：
+桌面、Android 与 iOS 的“用户监控”只做当天使用过的用户摘要：
 
 | 字段 | 类型 | 说明 |
 |------|------|------|

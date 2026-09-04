@@ -23,7 +23,7 @@
 | FR-8 | 开机自启动 | P2 | 可开关 |
 
 ### 1.3 非功能性需求（NFR）
-- 跨平台（Win v1.0；mac/iOS 后续，架构不阻断）
+- 跨平台：Windows 桌面、Apple Silicon macOS Release 构件、Android 10+ Compose 伴侣应用、iOS SwiftUI 伴侣应用；macOS 公证和移动端正式签名仍是发布负责人任务。
 - 凭证经 `safeStorage` 加密，禁明文
 - 悬浮窗空闲低占用
 - 业务逻辑与 Electron/UI 解耦，便于单测
@@ -34,8 +34,8 @@
 ## 二、概要设计
 
 ### 2.1 技术选型
-Electron 28+ / electron-vite / React 18 + TS / Zustand / TailwindCSS /
-electron-store + safeStorage / Vitest / electron-builder。
+Electron 31+ / electron-vite / React 18 + TS / Zustand / TailwindCSS /
+electron-store + safeStorage / Vitest / electron-builder；Android 为 Kotlin/Compose + Room + WorkManager + Glance。
 
 ### 2.2 架构
 
@@ -74,8 +74,9 @@ electron-store + safeStorage / Vitest / electron-builder。
 ```
 
 ### 3.2 数据流
-`fetchActiveAccounts()` → `filterActive` → `groupByGroup` → IPC 推给渲染层 →
-卡片渲染。`PollService` 每 30s 触发；失败指数退避 30→60→120s。
+账户、Dashboard 与用户监控并行形成快照：`fetchActiveAccounts()` → `filterActive` →
+`groupByGroup` → IPC 推给渲染层；用户来自 `/admin/users`。`PollService` 每 30s 触发；
+失败指数退避 30→60→120s。账户 401 会先用 refresh token 单次续期并重试，续期失败才重新登录。
 
 ### 3.3 关键接口契约（先于实现）
 ```ts
@@ -100,6 +101,7 @@ extractToken(raw): string | null              // 去引号/空白容错
 - contextIsolation 开启，preload 经 `contextBridge` 暴露白名单 API。
 - 渲染层 CSP 限制 `connect-src` 仅站点域名。
 - 外部链接走系统浏览器。
+- Android WebView 登录仅允许配置的 Sub2API 同源导航和 JWT 扫描；access token 使用 Android Keystore 加密，Widget 只读取离线快照。
 
 ---
 

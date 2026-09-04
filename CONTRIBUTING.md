@@ -15,6 +15,14 @@ npm run build:win    # 打包 Windows → release/
 npm run build:mac    # 打包 macOS → release/
 ```
 
+Android 在 `android/` 下使用 JDK 17、Gradle 8.7 与 Android SDK Platform 35：
+
+```bash
+gradle -p android testDebugUnitTest assembleDebug
+```
+
+Release CI 会验证该命令并上传 debug APK；正式 Android 发布密钥、`keystore.properties` 与 APK/AAB 产物绝不能提交。
+
 运行单个测试：`npx vitest run src/main/core/jwt.test.ts` 或 `npx vitest run -t "名称"`。
 
 服务器地址在首次启动的设置窗中输入；开发可用环境变量覆盖：复制 `.env.example` 为 `.env`，
@@ -32,4 +40,4 @@ npm run build:mac    # 打包 macOS → release/
 
 ## 提交前自检
 
-`npm test` 与 `npm run typecheck` 全绿；涉及打包/托盘/登录等 GUI 行为的改动请在真机自测说明中注明。
+`npm test` 与 `npm run typecheck` 全绿；涉及 Android 时运行 `testDebugUnitTest`，涉及打包/托盘/登录等 GUI 行为请在真机自测说明中注明。
